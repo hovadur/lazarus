@@ -1,0 +1,28 @@
+#   $Id$
+#
+#   Makefile.fpc for Lazarus for Free Pascal
+#
+
+[targets]
+dirs=gtk qt win32
+
+[dirs]
+# target dir needs to be . or a full path otherwise the 
+# unittargetdir will be corrupt
+# not with the lazarusmake.ini
+# targetdir=.
+
+[defaults]
+defaultdir=$(LCLPLATFORM)
+
+[install]
+packagename=interfaces
+
+[presettings]
+ifndef LCLPLATFORM
+LCLPLATFORM=gtk
+endif
+
+[postsettings]
+
+[rules]

@@ -187,6 +187,7 @@ endif
 
 # Targets
 
+override UNITOBJECTS+=interfaces
 
 # Clean
 
@@ -195,7 +196,7 @@ override EXTRACLEANUNITS+=$(notdir $(basename $(wildcard $(UNITTARGETDIR)/*$(PPU
 # Install
 
 override EXTRAINSTALLUNITS+=$(notdir $(basename $(wildcard $(UNITTARGETDIR)/*$(PPUEXT))))
-PACKAGENAME=lcl
+PACKAGENAME=gtkinterface
 ZIPTARGET=install
 
 # Defaults
@@ -204,10 +205,10 @@ override NEEDOPT=-Ca -gl
 
 # Directories
 
-override NEEDUNITDIR=$(UNITTARGETDIR) ./interfaces/abstract
-override NEEDINCDIR=./include
+override NEEDUNITDIR=$(UNITTARGETDIR) ../../units
+override NEEDINCDIR=.
 ifndef UNITTARGETDIR
-UNITTARGETDIR=./units
+UNITTARGETDIR=../../units/gtk
 endif
 
 # Packages
@@ -919,6 +920,20 @@ info: fpc_info
 .PHONY:  debug smart shared showinstall install sourceinstall exampleinstall zipinstall zipsourceinstall zipexampleinstall clean distclean cleanall info
 
 #####################################################################
+# Units
+#####################################################################
+
+.PHONY: fpc_units
+
+override ALLTARGET+=fpc_units
+
+override UNITPPUFILES=$(addsuffix $(PPUEXT),$(UNITOBJECTS))
+override INSTALLPPUFILES+=$(UNITPPUFILES)
+override CLEANPPUFILES+=$(UNITPPUFILES)
+
+fpc_units: $(UNITPPUFILES)
+
+#####################################################################
 # General compile rules
 #####################################################################
 
@@ -1332,11 +1347,7 @@ endif
 # Users rules
 #####################################################################
 
-cleartarget:
-	-$(DEL) $(UNITTARGETDIR)/allunits$(PPUEXT)
 
-all: cleartarget allunits$(PPUEXT)
-	-$(DEL) $(UNITTARGETDIR)/allunits$(PPUEXT)
-	-$(DEL) $(UNITTARGETDIR)/interfaces$(PPUEXT)
-	-$(DEL) $(UNITTARGETDIR)/interfaces$(OEXT)
-	$(MAKE) -C interfaces
+
+all: 
+	$(MAKE) --assume-new=interfaces$(PASEXT) interfaces$(PPUEXT)
