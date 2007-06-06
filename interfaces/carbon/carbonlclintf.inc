@@ -315,10 +315,69 @@ begin
   {$ENDIF}
 end;  {TCarbonWidgetSet.PromptUser}
 
-function TCarbonWidgetSet.ReplaceBitmapMask(var Image, Mask: HBitmap;
-  NewMask: HBitmap): boolean;
+{------------------------------------------------------------------------------
+  Function: RawImage_CreateBitmaps
+  Params: ARawImage:
+          ABitmap:
+          AMask:
+          ASkipMask: When set, no mask is created
+  Returns:
+
+ ------------------------------------------------------------------------------}
+function TCarbonWidgetSet.RawImage_CreateBitmaps(const ARawImage: TRawImage; out ABitmap, AMask: HBitmap; ASkipMask: Boolean): Boolean;
 begin
-  Result:=inherited ReplaceBitmapMask(Image, Mask, NewMask);
+  // Your code here
+end;
+
+{------------------------------------------------------------------------------
+  Function: RawImage_DescriptionFromBitmap
+  Params: ABitmap:
+          ADesc:
+  Returns:
+
+ ------------------------------------------------------------------------------}
+function TCarbonWidgetSet.RawImage_DescriptionFromBitmap(ABitmap: HBITMAP; out ADesc: TRawImageDescription): Boolean;
+begin
+  // Your code here
+end;
+
+{------------------------------------------------------------------------------
+  Function: RawImage_DescriptionFromDevice
+  Params: ADC:
+          ADesc:
+  Returns:
+
+ ------------------------------------------------------------------------------}
+function TCarbonWidgetSet.RawImage_DescriptionFromDevice(ADC: HDC; out ADesc: TRawImageDescription): Boolean;
+begin
+  // Your code here
+end;
+
+{------------------------------------------------------------------------------
+  Function: RawImage_FromBitmap
+  Params: ABitmap:
+          AMask:
+          ARect:
+          ARawImage:
+  Returns:
+
+ ------------------------------------------------------------------------------}
+function TCarbonWidgetSet.RawImage_FromBitmap(ABitmap, AMask: HBITMAP; const ARect: TRect; var ARawImage: TRawImage): Boolean;
+begin
+  // Your code here
+end;
+
+{------------------------------------------------------------------------------
+  Function: RawImage_FromDevice
+  Params: ADC:
+          ARect:
+          ARawImage:
+  Returns:
+
+ ------------------------------------------------------------------------------}
+function TCarbonWidgetSet.RawImage_FromDevice(ADC: HDC; const ARect: TRect; var ARawImage: TRawImage): Boolean;
+begin
+  // Your code here
 end;
 
 {------------------------------------------------------------------------------

@@ -59,6 +59,71 @@ begin
   Result := lListIndex;
 end;
 
+{------------------------------------------------------------------------------
+  Function: RawImage_CreateBitmaps
+  Params: ARawImage:
+          ABitmap:
+          AMask:
+          ASkipMask: Wehn set, no mask is created
+  Returns:
+
+ ------------------------------------------------------------------------------}
+function TWinceWidgetSet.RawImage_CreateBitmaps(const ARawImage: TRawImage; out ABitmap, AMask: HBitmap; ASkipMask: Boolean): Boolean;
+begin
+  // Your code here
+end;
+
+{------------------------------------------------------------------------------
+  Function: RawImage_DescriptionFromBitmap
+  Params: ABitmap:
+          ADesc:
+  Returns:
+
+ ------------------------------------------------------------------------------}
+function TWinceWidgetSet.RawImage_DescriptionFromBitmap(ABitmap: HBITMAP; out ADesc: TRawImageDescription): Boolean;
+begin
+  // Your code here
+end;
+
+{------------------------------------------------------------------------------
+  Function: RawImage_DescriptionFromDevice
+  Params: ADC:
+          ADesc:
+  Returns:
+
+ ------------------------------------------------------------------------------}
+function TWinceWidgetSet.RawImage_DescriptionFromDevice(ADC: HDC; out ADesc: TRawImageDescription): Boolean;
+begin
+  // Your code here
+end;
+
+{------------------------------------------------------------------------------
+  Function: RawImage_FromBitmap
+  Params: ABitmap:
+          AMask:
+          ARect:
+          ARawImage:
+  Returns:
+
+ ------------------------------------------------------------------------------}
+function TWinceWidgetSet.RawImage_FromBitmap(ABitmap, AMask: HBITMAP; const ARect: TRect; var ARawImage: TRawImage): Boolean;
+begin
+  // Your code here
+end;
+
+{------------------------------------------------------------------------------
+  Function: RawImage_FromDevice
+  Params: ADC:
+          ARect:
+          ARawImage:
+  Returns:
+
+ ------------------------------------------------------------------------------}
+function TWinceWidgetSet.RawImage_FromDevice(ADC: HDC; const ARect: TRect; var ARawImage: TRawImage): Boolean;
+begin
+  // Your code here
+end;
+
 procedure TWinCEWidgetSet.RemoveEventHandler(var AHandler: PEventHandler);
 var
   lListIndex: pdword absolute AHandler;

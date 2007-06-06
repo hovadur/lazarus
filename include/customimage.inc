@@ -212,7 +212,7 @@ begin
   // detect loop
   if FUseParentCanvas then exit;
   
-  With inherited Canvas do begin
+  with inherited Canvas do begin
     DrawFrame;
     If Picture.Graphic = nil then
       exit;

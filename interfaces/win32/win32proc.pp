@@ -28,7 +28,7 @@ interface
 
 uses
   Windows, Classes, SysUtils,
-  LMessages, LCLType, LCLProc, Controls, Forms, Menus;
+  LMessages, LCLType, LCLProc, Controls, Forms, Menus, GraphType;
 
 Type
   TEventType = (etNotify, etKey, etKeyPress, etMouseWheel, etMouseUpDown);
@@ -108,6 +108,10 @@ procedure AddToChangedMenus(Window: HWnd);
 procedure RedrawMenus;
 function MeasureText(const AWinControl: TWinControl; Text: string; var Width, Height: integer): boolean;
 function GetControlText(AHandle: HWND): string;
+
+procedure FillRawImageDescriptionColors(var ADesc: TRawImageDescription);
+procedure FillRawImageDescription(const ABitmapInfo: Windows.TBitmap; out ADesc: TRawImageDescription);
+
 
 type
   PDisableWindowsInfo = ^TDisableWindowsInfo;
@@ -1156,6 +1160,85 @@ begin
   GetWindowText(AHandle, PChar(Result), TextLen + 1);
 
  {$endif}
+end;
+
+procedure FillRawImageDescriptionColors(var ADesc: TRawImageDescription);
+begin
+  case ADesc.BitsPerPixel of
+    1,4,8:
+      begin
+        // palette mode, no offsets
+        ADesc.Format := ricfGray;
+        ADesc.RedPrec := ADesc.BitsPerPixel;
+        ADesc.GreenPrec := 0;
+        ADesc.BluePrec := 0;
+        ADesc.RedShift := 0;
+        ADesc.GreenShift := 0;
+        ADesc.BlueShift := 0;
+      end;
+    16:
+      begin
+        // 5-5-5 mode
+        ADesc.RedPrec := 5;
+        ADesc.GreenPrec := 5;
+        ADesc.BluePrec := 5;
+        ADesc.RedShift := 10;
+        ADesc.GreenShift := 5;
+        ADesc.BlueShift := 0;
+        ADesc.Depth := 15;
+      end;
+    24:
+      begin
+        // 8-8-8 mode
+        ADesc.RedPrec := 8;
+        ADesc.GreenPrec := 8;
+        ADesc.BluePrec := 8;
+        ADesc.RedShift := 16;
+        ADesc.GreenShift := 8;
+        ADesc.BlueShift := 0;
+      end;
+  else    //  32:
+    // 0-8-8-8 mode, high byte can be native alpha or custom 1bit maskalpha
+    ADesc.AlphaPrec := 8;
+    ADesc.RedPrec := 8;
+    ADesc.GreenPrec := 8;
+    ADesc.BluePrec := 8;
+    ADesc.AlphaShift := 24;
+    ADesc.RedShift := 16;
+    ADesc.GreenShift := 8;
+    ADesc.BlueShift := 0;
+    ADesc.Depth := 32;
+  end;
+end;
+
+procedure FillRawImageDescription(const ABitmapInfo: Windows.TBitmap; out ADesc: TRawImageDescription);
+begin
+  ADesc.Format := ricfRGBA;
+      // if true,
+  ADesc.Depth := ABitmapInfo.bmBitsPixel;             // used bits per pixel
+  ADesc.Width := ABitmapInfo.bmWidth;
+  ADesc.Height := ABitmapInfo.bmHeight;
+  ADesc.BitOrder := riboReversedBits;
+  ADesc.ByteOrder := riboLSBFirst;
+  ADesc.LineOrder := riloTopToBottom;
+  ADesc.BitsPerPixel := ABitmapInfo.bmBitsPixel;      // bits per pixel. can be greater than Depth.
+  ADesc.LineEnd := rileDWordBoundary;
+
+  if ABitmapInfo.bmBitsPixel <= 8
+  then begin
+    // each pixel is an index in the palette
+    // TODO, ColorCount
+    ADesc.PaletteColorCount := 0;
+  end
+  else ADesc.PaletteColorCount := 0;
+
+
+  FillRawImageDescriptionColors(ADesc);
+
+  ADesc.MaskBitsPerPixel := 1;
+  ADesc.MaskShift := 0;
+  ADesc.MaskLineEnd := rileWordBoundary; // CreateBitmap requires word boundary
+  ADesc.MaskBitOrder := riboReversedBits;
 end;
 
 procedure DoInitialization;

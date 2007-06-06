@@ -48,6 +48,8 @@
 
 {off $Define Disable_GC_SysColors}
 
+{$define RawimageConsistencyChecks}
+
 
 (*
  keep track of keystates instead of using OS

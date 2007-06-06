@@ -46,8 +46,7 @@ type
   private
   protected
   public
-    class function  CreateHandle(const AWinControl: TWinControl;
-          const AParams: TCreateParams): HWND; override;
+    class function  CreateHandle(const AWinControl: TWinControl; const AParams: TCreateParams): HWND; override;
     class procedure SetBiDiMode(const AWinControl: TWinControl; const ABiDiMode: TBiDiMode); override;
     class procedure SetDefault(const AButton: TCustomButton; ADefault: Boolean); override;
     class procedure SetShortCut(const AButton: TCustomButton; const OldKey, NewKey: word); override;
@@ -115,8 +114,7 @@ begin
   Result := Params.Window;
 end;
 
-class procedure TWin32WSButton.SetBiDiMode(const AWinControl: TWinControl;
-  const ABiDiMode: TBiDiMode);
+class procedure TWin32WSButton.SetBiDiMode(const AWinControl: TWinControl; const ABiDiMode: TBiDiMode);
 begin
   RecreateWnd(AWinControl);
 end;

@@ -525,20 +525,23 @@ end;
 procedure TCanvas.DoDraw(x, y: integer; const Image: TFPCustomImage);
 var
   LazImg: TLazIntfImage;
-  BitmapHnd, MaskHnd: HBitmap;
+  BitmapHnd, DummyHnd: HBitmap;
 begin
   if Image=nil then exit;
-  LazImg:=TLazIntfImage(Image);
+
   BitmapHnd:=0;
-  MaskHnd:=0;
   try
-    if not (LazImg is TLazIntfImage) then begin
-      LazImg:=TLazIntfImage.Create(0,0);
+    if Image is TLazIntfImage
+    then begin
+      LazImg := TLazIntfImage(Image);
+    end
+    else begin
+      LazImg := TLazIntfImage.Create(0,0);
       RequiredState([csHandleValid]);
-      LazImg.GetDescriptionFromDevice(Handle);
+      LazImg.DataDescription := GetDescriptionFromDevice(Handle, 0, 0);
       LazImg.Assign(Image);
     end;
-    LazImg.CreateBitmap(BitmapHnd,MaskHnd,false);
+    LazImg.CreateBitmaps(BitmapHnd, DummyHnd, True);
     if BitmapHnd=0 then exit;
 
     Changing;
@@ -547,9 +550,8 @@ begin
       BitmapHnd, 0,0,LazImg.Width,LazImg.Height, CopyMode);
     Changed;
   finally
-    if Image<>LazImg then LazImg.Free;
-    if BitmapHnd<>0 then DeleteDC(BitmapHnd);
-    if MaskHnd<>0 then DeleteDC(MaskHnd);
+    if Image <> LazImg then LazImg.Free;
+    if BitmapHnd <> 0 then DeleteObject(BitmapHnd);
   end;
 end;
 

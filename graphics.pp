@@ -1116,7 +1116,6 @@ type
   private
     FCanvas: TCanvas;
     FImage: TBitmapImage;
-    FPalette: HPALETTE;
     FPixelFormat: TPixelFormat;
     FTransparentColor: TColor;
     FTransparentMode: TTransparentMode;
@@ -1144,6 +1143,7 @@ type
     function GetWidth: Integer; override;
     function GetHandle: HBITMAP; virtual;
     function GetMaskHandle: HBITMAP; virtual;
+    function GetTransparent: Boolean; override;
     procedure HandleNeeded;
     procedure MaskHandleNeeded;
     procedure PaletteNeeded;
@@ -1171,8 +1171,7 @@ type
     function HandleAllocated: boolean;
     function MaskHandleAllocated: boolean;
     function PaletteAllocated: boolean;
-    procedure CreateFromBitmapHandles(SrcBitmap, SrcMaskBitmap: HBitmap;
-                                      const SrcRect: TRect);
+    procedure CreateFromBitmapHandles(ABitmap, AMask: HBitmap; const ARect: TRect);
     function LazarusResourceTypeValid(const ResourceType: string): boolean; virtual;
     procedure LoadFromDevice(DC: HDC); virtual;
     procedure LoadFromStream(Stream: TStream); override;
@@ -1187,6 +1186,7 @@ type
     procedure LoadFromXPMFile(const Filename: String);
     procedure LoadFromIntfImage(IntfImage: TLazIntfImage);
     procedure Mask(ATransparentColor: TColor);
+    procedure SetHandles(ABitmap, AMask: HBITMAP);
     procedure SaveToStream(Stream: TStream); override;
     procedure ReadStream(Stream: TStream; UseSize: boolean; Size: Longint); virtual;
     procedure WriteStream(Stream: TStream; WriteSize: Boolean); virtual;
@@ -1206,7 +1206,6 @@ type
     procedure CreateIntfImage(var IntfImage: TLazIntfImage);
     function CreateIntfImage: TLazIntfImage;
     function CanReadGraphicStreams(AClass: TFPCustomImageWriterClass): boolean; virtual;
-    procedure SetHandles(NewHandle, NewMaskHandle: HBITMAP);
   public
     property Canvas: TCanvas read GetCanvas;
     property Handle: HBITMAP read GetHandle write SetHandle;
