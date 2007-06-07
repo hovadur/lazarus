@@ -173,6 +173,8 @@ const
 
 
 function  RawImage_IsMasked(const ARawImage: TRawImage; ATestPixels: Boolean): Boolean;
+function  RawImage_IsTransparent(const ARawImage: TRawImage; ATestPixels: Boolean): Boolean;
+
 procedure RawImage_CreateData(var ARawImage: TRawImage; AZeroMem: Boolean);
 procedure RawImage_CreateLineStarts(AWidth, AHeight: cardinal; ABitsPerPixel: Byte;
                                    ALineEnd: TRawImageLineEnd;
@@ -440,10 +442,10 @@ begin
 
   if ATestPixels
   then begin
-    CheckMask;
+    Result := CheckMask;
 
     {$IFDEF VerboseRawImage}
-    DebugLn('RawImageMaskIsEmpty Empty=',dbgs(Result));
+    DebugLn('RawImageMaskIsEmpty Empty=',dbgs(not Result));
     {$ENDIF}
   end
   else begin
@@ -453,6 +455,24 @@ begin
     {$ENDIF}
     Exit;
   end;
+end;
+
+function RawImage_IsTransparent(const ARawImage: TRawImage; ATestPixels: Boolean): Boolean;
+  function CheckAlpha: Boolean;
+  begin
+    {$note TODO: implement CheckAlpha}
+    Result := True;
+  end;
+begin
+  Result :=
+    (ARawImage.Data <> nil) and
+    (ARawImage.DataSize <> 0) and
+    (ARawImage.Description.AlphaPrec <> 0) and
+    (ARawImage.Description.Width = 0) and
+    (ARawImage.Description.Height = 0);
+
+  if Result and ATestPixels then
+    Result := CheckAlpha;
 end;
 
 {$ifdef OldRawImageProcs}

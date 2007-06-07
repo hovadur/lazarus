@@ -249,6 +249,7 @@ type
     function  GetDataLineStart(y: integer): Pointer;// similar to Delphi TBitmap.ScanLine. Only works with byte aligned lines.
     procedure CreateData; virtual;
     function  HasTransparency: boolean; virtual;
+    function  HasMask: boolean; virtual;
   public
     property PixelData: PByte read FRawImage.Data;
     property MaskData: PByte read FRawImage.Mask;
@@ -2765,8 +2766,12 @@ end;
 
 function TLazIntfImage.HasTransparency: boolean;
 begin
-  {$note TODO: add aplha check}
-  Result := FMaskSet or RawImage_IsMasked(FRawImage, True);
+  Result := FMaskSet or RawImage_IsTransparent(FRawImage, True);
+end;
+
+function TLazIntfImage.HasMask: boolean;
+begin
+  Result := FMaskSet;
 end;
 
 constructor TLazIntfImage.Create(AWidth, AHeight: integer);

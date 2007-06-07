@@ -846,7 +846,7 @@ begin
     
     FinalizeFPImageReader(ImgReader);
     ImgMaskHandle := 0;
-    IntfImg.CreateBitmaps(ImgHandle, ImgMaskHandle, not IntfImg.HasTransparency);
+    IntfImg.CreateBitmaps(ImgHandle, ImgMaskHandle, not IntfImg.HasMask);
     SetHandles(ImgHandle, ImgMaskHandle);
   finally
     // set save stream
