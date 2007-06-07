@@ -32,7 +32,7 @@ interface
 
 uses
   Classes, SysUtils, fpImage, FPReadBMP, BMPComn, FPCAdds, AvgLvlTree, LCLType,
-  LCLProc, GraphType, LCLIntf;
+  LCLProc, GraphType, LCLIntf, FPReadPNG;
 
 type
   { TLazIntfImage }
@@ -459,6 +459,20 @@ type
   TLazReaderCursor = class (TLazReaderIcon)
   protected
     function  InternalCheck(Stream: TStream) : boolean; override;
+  end;
+  
+  { TLazReaderPNG }
+
+  TLazReaderPNG = class(TFPReaderPNG)
+  private
+    FImage: TLazIntfImage;
+    FReadingScanlines: Boolean;
+    procedure SetAlphaDescription;
+  protected
+    procedure HandleAlpha; override;
+    procedure HandleScanLine (const y : integer; const ScanLine : PByteArray); override;
+    function InternalCheck(Stream: TStream) : boolean; override;
+  public
   end;
 
 
@@ -4885,6 +4899,65 @@ begin
   With IconHeader do
     Result := (idReserved=0) and (LEtoN(idType)=2);
   FnIcons := LEtoN(IconHeader.idCount);
+end;
+
+{ TLazReaderPNG }
+
+procedure TLazReaderPNG.HandleAlpha;
+begin
+  inherited HandleAlpha;
+  if FReadingScanlines then Exit; // already read some data
+  if UseTransparent or (Header.ColorType = 3)
+  then SetAlphaDescription;
+end;
+
+procedure TLazReaderPNG.HandleScanLine(const y: integer; const ScanLine: PByteArray);
+begin
+  FReadingScanlines := True;
+  inherited HandleScanLine(y, ScanLine);
+end;
+
+function TLazReaderPNG.InternalCheck(Stream: TStream): boolean;
+begin
+  Result := inherited InternalCheck(Stream);
+
+  if TheImage is TLazIntfImage
+  then FImage := TLazIntfImage(TheImage)
+  else FImage := nil;
+
+  if Header.ColorType in [4, 6]
+  then SetAlphaDescription;
+end;
+
+procedure TLazReaderPNG.SetAlphaDescription;
+  function CreateBitMask(AShift, APrec: Byte): Cardinal; inline;
+  begin
+    Result := ($FFFFFFFF shr (32 - APrec)) shl AShift;
+  end;
+var
+  Desc: TRawImageDescription;
+  Mask: Cardinal;
+begin
+  if FImage = nil then Exit;
+  
+  Desc := FImage.DataDescription;
+  if Desc.AlphaPrec > 0 then Exit;
+  if Desc.BitsPerPixel <> 32 then Exit;
+  if Desc.Depth <> 24 then Exit;
+  
+  Mask := CreateBitMask(Desc.RedShift, Desc.RedPrec)
+       or CreateBitMask(Desc.GreenShift, Desc.GreenPrec)
+       or CreateBitMask(Desc.BlueShift, Desc.BluePrec);
+  
+  if (Mask and $FF = 0)
+  then Desc.AlphaShift := 0
+  else if (Mask and $FF000000 = 0)
+  then Desc.AlphaShift := 24
+  else Exit;
+
+  Desc.AlphaPrec := 8;
+  
+  FImage.DataDescription := Desc;
 end;
 
 //------------------------------------------------------------------------------

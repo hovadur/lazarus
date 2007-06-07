@@ -813,8 +813,8 @@ begin
     // Use the given 'Size' parameter
     StoreOriginal(Stream,Size);
     SrcStream:=NewSaveStream;
-  end else begin
-  
+  end
+  else begin
     FreeSaveStream;
     SrcStream:=Stream;
   end;

@@ -194,8 +194,7 @@ begin
       if BitmapHandle <> 0 then
       begin
         Glyph.Handle := BitmapHandle;
-        if MaskHandle <> 0 then
-          Glyph.MaskHandle := MaskHandle;
+        Glyph.MaskHandle := MaskHandle;
         GlyphValid := true;
       end;
     end;
