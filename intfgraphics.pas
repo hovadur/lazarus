@@ -4736,7 +4736,7 @@ begin
   InternalReadHead;
 
   {$note check if height is also doubled wiohout mask}
-  BFI.biHeight := BFI.biHeight div 2; { Height field is doubled, to (sort of) accomodate mask }
+  FBFI.biHeight := FBFI.biHeight div 2; { Height field is doubled, to (sort of) accomodate mask }
   InternalReadBody; { Now read standard bitmap }
 
   { Mask immediately follows unless bitmap was 32 bit - monchrome bitmap with no header }

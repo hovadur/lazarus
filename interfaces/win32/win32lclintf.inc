@@ -364,13 +364,10 @@ end;
 {$endif}
 
 function TWin32WidgetSet.LoadStockPixmap(StockID: longint; var Mask: HBitmap): HBitmap;
-{$ifdef NoMaskProblem}
 var
   AIconHandle: HIcon;
   AIconInfo: TIconInfo;
-{$endif}
 begin
-{$ifdef NoMaskProblem}
   Result := 0;
   case StockID of
     idDialogWarning: AIconHandle := LoadIcon(0, IDI_EXCLAMATION);
@@ -389,8 +386,6 @@ begin
     end
   end;
   if Result = 0 then
-{$endif}
-    Result := inherited LoadStockPixmap(StockID, Mask);
 end;
 
 {------------------------------------------------------------------------------
