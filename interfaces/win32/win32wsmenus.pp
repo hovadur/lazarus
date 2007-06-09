@@ -369,13 +369,18 @@ begin
 end;
 
 procedure DrawMenuItemIcon(const aMenuItem: TMenuItem; const aHDC: HDC; const aRect: Windows.RECT; const aSelected: boolean);
-var hdcMem: HDC;
-    hbmpOld: HBITMAP;
+var
+  hdcMem: HDC;
+  hbmpOld: HBITMAP;
 begin
-  hdcMem := aMenuItem.Bitmap.Canvas.Handle;
-  hbmpOld := SelectObject(hdcMem, aMenuItem.Bitmap.Handle);
-  TWin32WidgetSet(WidgetSet).MaskBlt(aHDC, aRect.left + LeftIconPosition, aRect.top + TopPosition(aRect.bottom - aRect.top, aMenuItem.Bitmap.Height), aMenuItem.Bitmap.Width, aMenuItem.Bitmap.Height, hdcMem, 0, 0, aMenuItem.Bitmap.MaskHandle, 0, 0);
-  SelectObject(hdcMem, hbmpOld);
+  // dont remove this with or you'll get n-times bitmap copying from imagelist into menu bitmap
+  with aMenuItem.Bitmap do
+  begin
+    hdcMem := Canvas.Handle;
+    hbmpOld := SelectObject(hdcMem, Handle);
+    TWin32WidgetSet(WidgetSet).MaskBlt(aHDC, aRect.left + LeftIconPosition, aRect.top + TopPosition(aRect.bottom - aRect.top, Height), Width, Height, hdcMem, 0, 0, MaskHandle, 0, 0);
+    SelectObject(hdcMem, hbmpOld);
+  end;
 end;
 
 procedure DrawMenuItem(const aMenuItem: TMenuItem; const aHDC: HDC; const aRect: Windows.RECT; const aSelected: boolean);
