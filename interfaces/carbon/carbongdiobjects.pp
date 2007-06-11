@@ -123,8 +123,9 @@ type
     FCGImage: CGImageRef;
     function GetARGBData: Pointer;
     function GetBitsPerComponent: Integer;
+    function GetDepth: Byte;
   public
-    constructor Create(AWidth, AHeight, ABitsPerPixel: Integer; AData: Pointer);
+    constructor Create(AWidth, AHeight, ABitsPerPixel, ABytesPerRow: Integer; AData: Pointer);
     destructor Destroy; override;
     procedure Update;
     function GetSubImage(const ARect: TRect): CGImageRef;
@@ -134,6 +135,7 @@ type
     property CGImage: CGImageRef read FCGImage;
     property Data: Pointer read FData;
     property DataSize: Integer read FDataSize;
+    property Depth: Byte read GetDepth;
     property RGBAData: Pointer read FData;
     property ARGBData: Pointer read GetARGBData;
     property Width: Integer read FWidth;
@@ -750,6 +752,22 @@ begin
 end;
 
 {------------------------------------------------------------------------------
+  Method:  TCarbonBitmap.GetDepth
+  Returns: Bitmap bits per pixel
+ ------------------------------------------------------------------------------}
+function TCarbonBitmap.GetDepth: Byte;
+begin
+  Result := CGImageGetBitsPerComponent(FCGImage);
+  case CGImageGetAlphaInfo(FCGImage) of
+    kCGImageAlphaNone,
+    kCGImageAlphaNoneSkipLast,
+    kCGImageAlphaNoneSkipFirst: Result := Result * 3;
+  else
+    Result := Result * 4;
+  end;
+end;
+
+{------------------------------------------------------------------------------
   Method:  TCarbonBitmap.GetARGBData
   Returns: Pointer to bitmap bits with swapped alpha component
  ------------------------------------------------------------------------------}
@@ -790,10 +808,11 @@ end;
   Params:  AWidth        - Bitmap width
            AHeight       - Bitmap height
            ABitsPerPixel - Bits per pixel (IGNORED)
+           ABytesPerRow  - The number of bytes between rows
   
   Creates Carbon bitmap with the specified characteristics
  ------------------------------------------------------------------------------}
-constructor TCarbonBitmap.Create(AWidth, AHeight, ABitsPerPixel: Integer;
+constructor TCarbonBitmap.Create(AWidth, AHeight, ABitsPerPixel, ABytesPerRow: Integer;
   AData: Pointer);
 begin
   inherited Create(False);
@@ -807,8 +826,7 @@ begin
 
   // TODO: enable more pixel formats
   FBitsPerPixel := 32; // RGBA-32 format
-  // 128bit align for best performance
-  FBytesPerRow := ((FWidth * FBitsPerPixel + 127) and not Cardinal(127)) shr 3;
+  FBytesPerRow := ABytesPerRow;
 
   FDataSize := FBytesPerRow * FHeight;
   System.GetMem(FData, FDataSize);

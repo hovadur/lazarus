@@ -52,7 +52,6 @@ function ClipboardRegisterFormat(const AMimeType: string): TClipboardFormat; ove
 function CombineRgn(Dest, Src1, Src2 : HRGN; fnCombineMode : Longint) : Longint;  override;
 function ComboBoxDropDown(Handle: HWND; DropDown: boolean): boolean; override;
 function CreateBitmap(Width, Height: Integer; Planes, BitCount: Longint; BitmapBits: Pointer): HBITMAP; override;
-function CreateBitmapFromRawImage(const RawImage: TRawImage; var Bitmap, MaskBitmap: HBitmap; AlwaysCreateMask: boolean): boolean; override;
 function CreateBrushIndirect(const LogBrush: TLogBrush): HBRUSH; override;
 function CreateCaret(Handle : HWND; Bitmap : hBitmap; width, Height : Integer) : Boolean; override;
 function CreateCompatibleBitmap(DC: HDC; Width, Height: Integer): HBITMAP; override;
@@ -94,7 +93,6 @@ function FrameRect(DC: HDC; const ARect: TRect; hBr: HBRUSH): Integer; override;
 
 function GetActiveWindow : HWND; override;
 function GetBitmapBits(Bitmap: HBITMAP; Count: Longint;  Bits: Pointer): Longint; override;
-function GetBitmapRawImageDescription(Bitmap: HBITMAP; Desc: PRawImageDescription): boolean; override;
 function GetCapture: HWND; override;
 function GetCaretPos(var lpPoint: TPoint): Boolean; override;
 function GetCaretRespondToFocus(handle: HWND; var ShowHideOnFocus: boolean): Boolean; override;

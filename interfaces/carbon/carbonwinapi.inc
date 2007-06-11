@@ -197,33 +197,6 @@ begin
   Result := HBITMAP(TCarbonBitmap.Create(Width, Height, BitCount, BitmapBits));
 end;
 
-{------------------------------------------------------------------------------
-  Method:  TCarbonWidgetSet.CreateBitmapFromRawImage
-  Params:  RawImage         - Source raw image
-           Bitmap           - Destination bitmap object
-           MaskBitmap       - Destination mask object
-           AlwaysCreateMask
-  Returns: If the function suceeds
-
-  Creates a bitmap from the specified raw image
- ------------------------------------------------------------------------------}
-function TCarbonWidgetSet.CreateBitmapFromRawImage(const RawImage: TRawImage;
-  var Bitmap, MaskBitmap: HBitmap; AlwaysCreateMask: boolean): boolean;
-begin
-  Result := False;
-
-  {$IFDEF VerboseWinAPI}
-    DebugLn('TCarbonWidgetSet.CreateBitmapFromRawImage');
-  {$ENDIF}
-  
-  Bitmap := 0;
-  MaskBitmap := 0;
-
-  Bitmap := HBITMAP(TCarbonBitmap.Create(RawImage.Description.Width,
-   RawImage.Description.Height, 32, RawImage.Data));
-   
-  Result := True;
-end;
 
 {------------------------------------------------------------------------------
   Method:   CreateBrushIndirect
@@ -911,39 +884,6 @@ begin
 end;
 
 {------------------------------------------------------------------------------
-  Method:  TCarbonWidgetSet.GetBitmapRawImageDescription
-  Params:  Bitmap - Bitmap
-           Desc   - Bitmap raw image description
-  Returns: If the function succeeds
-
-  Describes the inner format utilized by Carbon and specific information
-  for the specified bitmap
- ------------------------------------------------------------------------------}
-function TCarbonWidgetSet.GetBitmapRawImageDescription(Bitmap: HBITMAP;
-  Desc: PRawImageDescription): Boolean;
-begin
-  Result := False;
-
-  {$IFDEF VerboseWinAPI}
-    DebugLn('TCarbonWidgetSet.GetBitmapRawImageDescription Bitmap: ' + DbgS(Bitmap));
-  {$ENDIF}
-  
-  if Desc = nil then
-  begin
-    DebugLn('TCarbonWidgetSet.GetBitmapRawImageDescription Error - Desc = nil!');
-    Exit;
-  end;
-  if not CheckBitmap(Bitmap, 'GetBitmapRawImageDescription') then Exit;
-
-  FillStandardDescription(Desc^);
-
-  Desc^.Width := TCarbonBitmap(Bitmap).Width;
-  Desc^.Height := TCarbonBitmap(Bitmap).Height;
-  
-  Result := True;
-end;
-
-{------------------------------------------------------------------------------
   Method:  GetCapture
   Returns: The handle of the capture window
 
@@ -1165,29 +1105,6 @@ begin
   {$IFDEF VerboseWinAPI}
     DebugLn('TCarbonWidgetSet.GetDeviceCaps Result: ' + DbgS(Result));
   {$ENDIF}
-end;
-
-{------------------------------------------------------------------------------
-  Method:  TCarbonWidgetSet.GetDeviceRawImageDescription
-  Params:  DC   - Handle to device context
-           Desc - Pointer to raw image description
-  Returns: If the function succeeds
-
-  Retrieves the standard image format utilized by Carbon
- ------------------------------------------------------------------------------}
-function TCarbonWidgetSet.GetDeviceRawImageDescription(DC: HDC;
-  Desc: PRawImageDescription): boolean;
-begin
-  Result := False;
-  
-  {$IFDEF VerboseWinAPI}
-    DebugLn('TCarbonWidgetSet.GetDeviceRawImageDescription DC: ' + DbgS(DC));
-  {$ENDIF}
-  
-  if Desc = nil then Exit;
-
-  FillStandardDescription(Desc^);
-  Result := True;
 end;
 
 {------------------------------------------------------------------------------

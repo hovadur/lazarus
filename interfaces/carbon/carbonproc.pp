@@ -64,7 +64,7 @@ function ShiftStateToModifiers(const Shift: TShiftState): Byte;
 function FindCarbonFontID(const FontName: String): ATSUFontID;
 function FontStyleToQDStyle(const AStyle: TFontStyles): FPCMacOSAll.Style;
 
-procedure FillStandardDescription(var Desc: TRawImageDescription);
+procedure FillStandardDescription(out Desc: TRawImageDescription);
 
 const
   DEFAULT_CFSTRING_ENCODING = kCFStringEncodingUTF8;
@@ -392,12 +392,11 @@ end;
   Fills the raw image description with standard Carbon internal image storing
   description
  ------------------------------------------------------------------------------}
-procedure FillStandardDescription(var Desc: TRawImageDescription);
+procedure FillStandardDescription(out Desc: TRawImageDescription);
 begin
   FillChar(Desc, SizeOf(Desc), 0);
 
   Desc.Format := ricfRGBA;
-  Desc.HasPalette := False;
 // Width and Height skipped
   Desc.PaletteColorCount := 0;
   Desc.ColorCount := Desc.PaletteColorCount;
@@ -405,8 +404,6 @@ begin
   Desc.BitOrder := riboReversedBits;
   Desc.ByteOrder := riboMSBFirst;
   Desc.LineEnd := rileDQWordBoundary; // 128bit aligned
-  
-  Desc.AlphaSeparate := False;
   
   Desc.LineOrder := riloTopToBottom;
   Desc.BitsPerPixel := 32;
@@ -422,6 +419,11 @@ begin
   Desc.GreenShift := 16;
   Desc.BlueShift  := 08;
   Desc.AlphaShift := 00;
+  
+  Desc.MaskBitOrder := riboReversedBits;
+  Desc.MaskBitsPerPixel := 1;
+  Desc.MaskLineEnd := rileDQWordBoundary; // 128bit aligned ??? is this needed for mone bitmaps ??;
+  Desc.MaskShift := 0;
 end;
 
 {------------------------------------------------------------------------------

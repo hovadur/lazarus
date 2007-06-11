@@ -317,16 +317,26 @@ end;  {TCarbonWidgetSet.PromptUser}
 
 {------------------------------------------------------------------------------
   Function: RawImage_CreateBitmaps
-  Params: ARawImage:
-          ABitmap:
-          AMask:
+  Params: ARawImage: Source raw image
+          ABitmap:   Destination bitmap object
+          AMask:     Destination mask object
           ASkipMask: When set, no mask is created
   Returns:
 
  ------------------------------------------------------------------------------}
 function TCarbonWidgetSet.RawImage_CreateBitmaps(const ARawImage: TRawImage; out ABitmap, AMask: HBitmap; ASkipMask: Boolean): Boolean;
+var
+  ADesc: TRawImageDescription absolute ARawImage.Description;
 begin
-  // Your code here
+  Result := False;
+
+  ABitmap := HBITMAP(TCarbonBitmap.Create(ADesc.Width, ADesc.Height, ADesc.Depth, ARawImage.Data));
+
+  if ASkipMask
+  then AMaskBitmap := 0
+  else AMaskBitmap := HBITMAP(TCarbonBitmap.Create(ADesc.Width, ADesc.Height, 1, ARawImage.Mask))
+
+  Result := True;
 end;
 
 {------------------------------------------------------------------------------
@@ -335,22 +345,144 @@ end;
           ADesc:
   Returns:
 
+  Describes the inner format utilized by Carbon and specific information
+  for the specified bitmap
  ------------------------------------------------------------------------------}
 function TCarbonWidgetSet.RawImage_DescriptionFromBitmap(ABitmap: HBITMAP; out ADesc: TRawImageDescription): Boolean;
+var
+  ACBitmap: TCarbonBitmap absolute ABitmap;
+  Prec, Shift, BPR: Byte;
+  AlphaInfo: CGImageAlphaInfo;
 begin
-  // Your code here
+  Result := False;
+
+  if not CheckBitmap(Bitmap, 'RawImage_DescriptionFromBitmap') then Exit;
+
+  FillChar(ADesc, SizeOf(Desc), 0);
+
+  ADesc.Format := ricfRGBA;
+  ADesc.Width := ACBitmap.Width;
+  ADesc.Height := ACBitmap.Height;
+
+  //ADesc.PaletteColorCount := 0;
+
+  ADesc.BitOrder := riboReversedBits;
+  ADesc.ByteOrder := riboMSBFirst;
+
+  BPR := CGImageGetBytesPerRow(ACBitmap.CGImage);
+  if BPR and $F = 0 then ADesc.LineEnd := rileDQWordBoundary     // 128bit aligned
+  else if BPR and $7 = 0 then ADesc.LineEnd := rileQWordBoundary //  64bit aligned
+  else if BPR and $3 = 0 then ADesc.LineEnd := rileWordBoundary  //  32bit aligned
+  else if BPR and $1 = 0 then ADesc.LineEnd := rileByteBoundary  //   8bit aligned
+  else ADesc.LineEnd := rileTight;
+
+  ADesc.LineOrder := riloTopToBottom;
+  ADesc.BitsPerPixel := CGImageGetBitsPerPixel(ACBitmap.CGImage);
+
+  ADesc.MaskBitOrder := riboReversedBits;
+  ADesc.MaskBitsPerPixel := 1;
+  ADesc.MaskLineEnd := rileDQWordBoundary; // 128bit aligned ??? is this needed for mone bitmaps ??;
+  // ADesc.MaskShift := 0;
+
+  Prec := CGImageGetBitsPerComponent(ACBitmap.CGImage);
+  AlphaInfo := CGImageGetAlphaInfo(ACBitmap.CGImage);
+  
+  if AlphaInfo <> kCGImageAlphaOnly
+  then begin
+    ADesc.RedPrec := Prec;
+    ADesc.GreenPrec := Prec;
+    ADesc.BluePrec := Prec;
+  end;
+
+  // alpha
+  case AlphaInfo of
+    kCGImageAlphaNone,
+    kCGImageAlphaNoneSkipLast,
+    kCGImageAlphaNoneSkipFirst: begin
+      ADesc.Depth := Prec * 3;
+      // ADesc.AlphaPrec := 0;
+    end;
+  else
+    ADesc.Depth := Prec * 4;
+    ADesc.AlphaPrec := Prec;
+  end;
+
+  case AlphaInfo of
+    kCGImageAlphaNone,
+    kCGImageAlphaNoneSkipLast: begin
+      // RGBx
+      Shift := 32 - Prec;
+      ADesc.RedShift := Shift;
+      Dec(Shift, Prec);
+      ADesc.GreenShift := Shift;
+      Dec(Shift, Prec);
+      ADesc.BlueShift := Shift;
+    end;
+    kCGImageAlphaNoneSkipFirst: begin
+      // xRGB
+      Shift := 0;
+      ADesc.BlueShift := Shift;
+      Inc(Shift, Prec);
+      ADesc.GreenShift := Shift;
+      Inc(Shift, Prec);
+      ADesc.RedShift := Shift;
+    end;
+    kCGImageAlphaPremultipliedFirst,
+    kCGImageAlphaFirst: begin
+      // ARGB
+      Shift := 32 - Prec;
+      ADesc.AlphaShift := Shift;
+      Dec(Shift, Prec);
+      ADesc.RedShift := Shift;
+      Dec(Shift, Prec);
+      ADesc.GreenShift := Shift;
+      Dec(Shift, Prec);
+      ADesc.BlueShift := Shift;
+    end;
+    kCGImageAlphaPremultipliedLast,
+    kCGImageAlphaLast: begin
+      // RGBA
+      Shift := 32 - Prec;
+      ADesc.RedShift := Shift;
+      Dec(Shift, Prec);
+      ADesc.GreenShift := Shift;
+      Dec(Shift, Prec);
+      ADesc.BlueShift := Shift;
+      Dec(Shift, Prec);
+      ADesc.AlphaShift := Shift;
+    end;
+    kCGImageAlphaOnly: begin
+      // A
+      //ADesc.AlphaShift := 0;
+    end;
+  end;
+
+  Result := True;
 end;
 
 {------------------------------------------------------------------------------
   Function: RawImage_DescriptionFromDevice
-  Params: ADC:
-          ADesc:
-  Returns:
+  Params: ADC:   - Handle to device context
+          ADesc: - Pointer to raw image description
+  Returns: True if success
 
+  Retrieves the standard image format utilized by Carbon
  ------------------------------------------------------------------------------}
 function TCarbonWidgetSet.RawImage_DescriptionFromDevice(ADC: HDC; out ADesc: TRawImageDescription): Boolean;
+var
+  P: TPoint;
 begin
-  // Your code here
+  Result := False;
+
+  FillStandardDescription(ADesc);
+  if CheckDC(ADC, 'GetDeviceSize')
+  then begin
+    P := TCarbonDeviceContext(DC).Size;
+    ADesc.Width := P.X;
+    ADesc.Height := P.Y
+  end;
+
+  Result := True;
 end;
 
 {------------------------------------------------------------------------------
