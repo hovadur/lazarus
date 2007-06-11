@@ -385,7 +385,6 @@ begin
       Mask := AIconInfo.hbmMask;
     end
   end;
-  if Result = 0 then
 end;
 
 {------------------------------------------------------------------------------

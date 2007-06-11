@@ -158,11 +158,12 @@ const
   { - you do need to destroy the imagelist yourself.
     - you'll need 5 images to support all themed xp button states...
 
-    Image 0 = normal
-    Image 1 = mouse hover
-    Image 2 = button down
-    Image 3 = button disabled
-    Image 4 = button focus
+    Image 0 = NORMAL
+    Image 1 = HOT
+    Image 2 = PRESSED
+    Image 3 = DISABLED
+    Image 4 = DEFAULTED
+    Image 5 = STYLUSHOT - for tablet computers
   }
 
   XPBitBtn_ImageIndexToState: array[1..6] of TButtonState =
