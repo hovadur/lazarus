@@ -112,6 +112,9 @@ function GetControlText(AHandle: HWND): string;
 procedure FillRawImageDescriptionColors(var ADesc: TRawImageDescription);
 procedure FillRawImageDescription(const ABitmapInfo: Windows.TBitmap; out ADesc: TRawImageDescription);
 
+function GetBitmapBytes(AWinBmp: Windows.TBitmap; ABitmap: HBITMAP; const ARect: TRect; var AData: Pointer; var ADataSize: PtrUInt): Boolean;
+
+
 
 type
   PDisableWindowsInfo = ^TDisableWindowsInfo;
@@ -1239,6 +1242,39 @@ begin
   ADesc.MaskShift := 0;
   ADesc.MaskLineEnd := rileWordBoundary; // CreateBitmap requires word boundary
   ADesc.MaskBitOrder := riboReversedBits;
+end;
+
+function GetBitmapBytes(AWinBmp: Windows.TBitmap; ABitmap: HBITMAP; const ARect: TRect; var AData: Pointer; var ADataSize: PtrUInt): Boolean;
+var
+  DC: HDC;
+  Info: record
+    Header: Windows.TBitmapInfoHeader;
+    Colors: array[Byte] of TRGBQuad; // reserve extra colors for palette (256 max)
+  end;
+begin
+  // initialize bitmapinfo structure
+  Info.Header.biSize := sizeof(Info.Header);
+  Info.Header.biWidth := AWinBmp.bmWidth;
+  // request a top-down DIB
+  if AWinBmp.bmHeight > 0
+  then Info.Header.biHeight := -AWinBmp.bmHeight
+  else Info.Header.biHeight := AWinBmp.bmHeight;
+  Info.Header.biPlanes := 1;
+  Info.Header.biBitCount := AWinBmp.bmBitsPixel;
+  Info.Header.biCompression := BI_RGB;
+  Info.Header.biSizeImage := 0;
+
+  ADataSize := ((AWinBmp.bmWidthBytes + 3) and not 3) * (ARect.Bottom-ARect.Top);
+  GetMem(AData, ADataSize);
+  DC := Windows.GetDC(0);
+  Windows.GetDIBits(DC, ABitmap, ARect.Top, ARect.Bottom-ARect.Top, AData, Windows.PBitmapInfo(@Info)^, DIB_RGB_COLORS);
+
+  // release resources
+  Windows.ReleaseDC(0, DC);
+
+  // todo: get partial data
+  // Partial := (ARect.Right - ARect.Left) <> WinBmp.bmWidth
+  Result := True;
 end;
 
 procedure DoInitialization;

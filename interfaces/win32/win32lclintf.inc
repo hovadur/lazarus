@@ -422,6 +422,7 @@ begin
 
   DC := Windows.GetDC(0);
   ABitmap := Windows.CreateDIBitmap(DC, Info.Header, CBM_INIT, ARawImage.Data, Windows.PBitmapInfo(@Info)^, DIB_RGB_COLORS);
+  //DbgDumpBitmap(ABitmap, 'CreateBitmaps - Image');
   ReleaseDC(0, DC);
 
   if ABitmap = 0 then Exit;
@@ -506,40 +507,6 @@ end;
 
  ------------------------------------------------------------------------------}
 function TWin32WidgetSet.RawImage_FromBitmap(out ARawImage: TRawImage; ABitmap, AMask: HBITMAP; const ARect: TRect): Boolean;
-
-  function GetBits(AWinBmp: Windows.TBitmap; ABitmap: HBITMAP; const ARect: TRect; var AData: Pointer; var ADataSize: PtrUInt): Boolean;
-  var
-    DC: HDC;
-    Info: record
-      Header: Windows.TBitmapInfoHeader;
-      Colors: array[Byte] of TRGBQuad; // reserve extra colors for palette (256 max)
-    end;
-  begin
-    // initialize bitmapinfo structure
-    Info.Header.biSize := sizeof(Info.Header);
-    Info.Header.biWidth := AWinBmp.bmWidth;
-    // request a top-down DIB
-    if AWinBmp.bmHeight > 0
-    then Info.Header.biHeight := -AWinBmp.bmHeight
-    else Info.Header.biHeight := AWinBmp.bmHeight;
-    Info.Header.biPlanes := 1;
-    Info.Header.biBitCount := AWinBmp.bmBitsPixel;
-    Info.Header.biCompression := BI_RGB;
-    Info.Header.biSizeImage := 0;
-
-    ADataSize := ((AWinBmp.bmWidthBytes + 3) and not 3) * (ARect.Bottom-ARect.Top);
-    GetMem(AData, ADataSize);
-    DC := Windows.GetDC(0);
-    Windows.GetDIBits(DC, ABitmap, ARect.Top, ARect.Bottom-ARect.Top, AData, Windows.PBitmapInfo(@Info)^, DIB_RGB_COLORS);
-
-    // release resources
-    Windows.ReleaseDC(0, DC);
-
-    // todo: get partial data
-    // Partial := (ARect.Right - ARect.Left) <> WinBmp.bmWidth
-    Result := True;
-  end;
-
 var
   WinBmp: Windows.TBitmap;
   R: TRect;
@@ -560,7 +527,7 @@ begin
     R.Right := WinBmp.bmWidth;
 
   // copy bitmap
-  GetBits(WinBmp, ABitmap, R, ARawImage.Data, ARawImage.DataSize);
+  GetBitmapBytes(WinBmp, ABitmap, R, ARawImage.Data, ARawImage.DataSize);
 
   // check mask
   if AMask <> 0 then
@@ -568,7 +535,7 @@ begin
     Result := Windows.GetObject(AMask, SizeOf(WinBmp), @WinBmp) > 0;
     if not Result then exit;
 
-    GetBits(WinBmp, AMask, R, ARawImage.Mask, ARawImage.MaskSize);
+    GetBitmapBytes(WinBmp, AMask, R, ARawImage.Mask, ARawImage.MaskSize);
   end
   else begin
     ARawImage.Description.MaskBitsPerPixel := 0;;

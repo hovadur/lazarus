@@ -31,7 +31,7 @@ unit Win32Debug;
 interface 
 
 uses
-  windows, ctypes, sysutils;
+  windows, ctypes, sysutils, win32Extra;
 
 procedure DbgDumpBitmap(ABitmap: HBITMAP; ATitle: String = ''; AWidth: Integer = -1; AHeight: Integer = -1);
 procedure DbgDumpDC(ADC: HDC; ATitle: String = ''; AWidth: Integer = -1; AHeight: Integer = -1);
@@ -42,6 +42,7 @@ type
   PDbgDumpInfo = ^TDbgDumpInfo;
   TDbgDumpInfo = record                            
     Width, Height: Integer;
+    OrgWidth, OrgHeight: Integer;
     Bitmap: HBITMAP;
   end;
 
@@ -51,6 +52,7 @@ var
   PS: TPaintStruct;
   DC: HDC;
   OldBmp: HBITMAP;
+  Blend: TBlendFunction;
 begin
   Result := 0;
   case Msg of
@@ -64,7 +66,14 @@ begin
       BeginPaint(Wnd, PS);
       DC := CreateCompatibleDC(PS.hdc);
       OldBmp := SelectObject(DC, Info^.Bitmap);
-      BitBlt(PS.hDC, 0, 0, Info^.Width, Info^.Height, DC, 0,0, SRCCOPY);
+      
+      Blend.BlendOp := AC_SRC_OVER;
+      Blend.BlendFlags := 0;
+      Blend.SourceConstantAlpha := 255;
+      Blend.AlphaFormat := AC_SRC_ALPHA;
+
+      Win32Extra.AlphaBlend(PS.hDC, 0, 0, Info^.Width, Info^.Height, DC, 0,0, Info^.OrgWidth, Info^.OrgHeight, Blend);
+      //BitBlt(PS.hDC, 0, 0, Info^.Width, Info^.Height, DC, 0,0, SRCCOPY);
       SelectObject(DC, OldBmp);
       DeleteDC(DC);
       EndPaint(Wnd, PS);
@@ -96,7 +105,7 @@ begin
   wc.style := CS_HREDRAW or CS_VREDRAW;
   wc.lpfnWndProc := @DbgWindowProc;
   wc.hInstance := hinstance;
-  wc.hbrBackground := GetStockObject(WHITE_BRUSH);
+  wc.hbrBackground := GetStockObject(BLACK_BRUSH);
   wc.lpszClassName := 'LazDbgWindow';
   RegisterClass(wc);
 
@@ -147,6 +156,8 @@ begin
   
   Info^.Width := AWidth;
   Info^.Height := AHeight;
+  Info^.OrgWidth := w;
+  Info^.OrgHeight := h;
 
   ATitle := ATitle + Format(' (%s W:%d H:%d D:%d)', [ADesc, w, h, d]);
   DbgCreateWindow(Info, ATitle);

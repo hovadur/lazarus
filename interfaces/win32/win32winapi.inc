@@ -3179,32 +3179,66 @@ End;
   the destination device context.
  ------------------------------------------------------------------------------}
 function TWin32WidgetSet.StretchMaskBlt(DestDC: HDC; X, Y, Width, Height: Integer; SrcDC: HDC; XSrc, YSrc, SrcWidth, SrcHeight: Integer; Mask: HBITMAP; XMask, YMask: Integer; Rop: DWORD): Boolean;
+
+  function CreatePremultipliedBitmap(AWinBmp: Windows.TBitmap; ABitmap: HBITMAP): HBITMAP;
+  var
+    Data: Pointer;
+    Pixel: PRGBAQuad;
+    ByteCount: PtrUInt;
+    Header: Windows.TBitmapInfoHeader;
+  begin
+    Result := 0;
+    // todo, process only requested rectangle
+    if not GetBitmapBytes(AWinBmp, ABitmap, Rect(0, 0, AWinBmp.bmWidth, AWinBmp.bmHeight), Data, ByteCount)
+    then begin
+      Exit;
+    end;
+    
+    Pixel := Data;
+    ByteCount := ByteCount shr 2;
+    while ByteCount > 0 do
+    begin
+      Pixel^.Red := (Pixel^.Red * Pixel^.Alpha) shr 8;
+      Pixel^.Green := (Pixel^.Green * Pixel^.Alpha) shr 8;
+      Pixel^.Blue := (Pixel^.Blue * Pixel^.Alpha) shr 8;
+      Inc(Pixel);
+      Dec(ByteCount);
+    end;
+
+    FillChar(Header, SizeOf(Header), 0);
+    Header.biSize := SizeOf(Header);
+    Header.biWidth := AWinBmp.bmWidth;
+    Header.biHeight := -AWinBmp.bmHeight;
+    Header.biPlanes := 1;
+    Header.biBitCount := 32;
+    Header.biCompression := BI_RGB;
+
+    Result := Windows.CreateDIBitmap(SrcDC, Header, CBM_INIT, Data, Windows.TBitmapInfo((@Header)^), DIB_RGB_COLORS);
+  end;
 var
-  MaskDC, CopyDC: HDC;
-  SaveObj, CopyObj: HGDIOBJ;
+  MaskDC, CopyDC, AlphaDC: HDC;
+  MaskObj, CopyObj, AlphaObj: HGDIOBJ;
   PrevTextColor, PrevBkColor: COLORREF;
   WinBmp: Windows.TBitmap;
-  Bmp, CopyBmp: HBITMAP;
+  Bmp, CopyBmp, AlphaBmp: HBITMAP;
   HasAlpha: Boolean;
   Blend: TBlendFunction;
 begin
   //DbgDumpBitmap(Mask, 'StretchMaskBlt - Mask');
 
   // check if the Src has an alpha channel
-  // retieve the bitmap by selecting a dummy
-  bmp := Windows.CreateBitmap(1,1,1,1,nil);
-  // unselect bitmap
-  bmp := Windows.SelectObject(SrcDC, bmp);
+  bmp := Windows.GetCurrentObject(SrcDC, OBJ_BITMAP);
   // get info
   HasAlpha := (Windows.GetObject(bmp, SizeOf(WinBmp), @WinBmp) <> 0)
           and (WinBmp.bmBitsPixel = 32);
-  // reselect bitmap
-  bmp := Windows.SelectObject(SrcDC, bmp);
-  // delete dummy
-  Windows.DeleteObject(bmp);
-  
   if HasAlpha
   then begin
+    // premultiply pixels
+    AlphaBmp := CreatePremultipliedBitmap(WinBmp, Bmp);
+    AlphaDC := Windows.CreateCompatibleDC(SrcDC);
+    AlphaObj := Windows.SelectObject(AlphaDC, AlphaBmp);
+
+    // init blendfunction
     Blend.BlendOp := AC_SRC_OVER;
     Blend.BlendFlags := 0;
     Blend.SourceConstantAlpha := 255;
@@ -3217,7 +3251,7 @@ begin
   begin
     if HasAlpha
     then begin
-      Win32Extra.AlphaBlend(DestDC, X, Y, Width, Height, SrcDC, XSrc, YSrc, SrcWidth, SrcHeight, Blend);
+      Win32Extra.AlphaBlend(DestDC, X, Y, Width, Height, AlphaDC, XSrc, YSrc, SrcWidth, SrcHeight, Blend);
     end
     else begin
       if (Width = SrcWidth) and (Height = SrcHeight) then
@@ -3230,7 +3264,7 @@ begin
     end;
   end else begin
     MaskDC := Windows.CreateCompatibleDC(DestDC);
-    SaveObj := Windows.SelectObject(MaskDC, Mask);
+    MaskObj := Windows.SelectObject(MaskDC, Mask);
 
     PrevTextColor := Windows.SetTextColor(DestDC, $00000000);
     PrevBkColor := Windows.SetBkColor(DestDC, $00FFFFFF);
@@ -3250,7 +3284,7 @@ begin
       else Windows.StretchBlt(CopyDC, 0, 0, Width, Height, MaskDC, XSrc, YSrc, SrcWidth, SrcHeight, SRCPAINT);
 
       // copy source
-      Win32Extra.AlphaBlend(DestDC, X, Y, Width, Height, SrcDC, XSrc, YSrc, SrcWidth, SrcHeight, Blend);
+      Win32Extra.AlphaBlend(DestDC, X, Y, Width, Height, AlphaDC, XSrc, YSrc, SrcWidth, SrcHeight, Blend);
       // wipe masked area -> white
       if (Width = SrcWidth) and (Height = SrcHeight)
       then Windows.BitBlt(DestDC, X, Y, Width, Height, MaskDC, XSrc, YSrc, SRCPAINT)
@@ -3279,9 +3313,16 @@ begin
     end;
     Windows.SetTextColor(DestDC, PrevTextColor);
     Windows.SetBkColor(DestDC, PrevBkColor);
-    Windows.SelectObject(MaskDC, SaveObj);
+    Windows.SelectObject(MaskDC, MaskObj);
     Windows.DeleteDC(MaskDC);
   end;
+  
+  if HasAlpha
+  then begin
+    Windows.SelectObject(AlphaDC, AlphaObj);
+    Windows.DeleteDC(AlphaDC);
+  end;
+
   Result := true;
 end;
 
