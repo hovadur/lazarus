@@ -549,7 +549,7 @@ begin
         IntfImage:=TLazIntfImage.Create(0,0);
         try
           IntfImage.LoadFromBitmap(FImage.FHandle,FImage.FMaskHandle,Width,Height);
-          IntfImage.CreateBitmaps(NewImage.FHandle, NewImage.FMaskHandle);
+          IntfImage.CreateBitmaps(NewImage.FHandle, NewImage.FMaskHandle, not IntfImage.HasMask);
           FillChar(NewImage.FDIB, SizeOf(NewImage.FDIB), 0);
           if NewImage.HandleAllocated then
             GetObject(NewImage.FHandle, SizeOf(NewImage.FDIB), @NewImage.FDIB);
@@ -826,7 +826,7 @@ begin
     // This is incompatible with delphi
     IntfImg.DataDescription := GetDescriptionFromDevice(0, 0, 0);
     ImgReader:=ReaderClass.Create;
-    InitFPImageReader(ImgReader);
+    InitFPImageReader(IntfImg, ImgReader);
     OldStreamPosition:=SrcStream.Position;
     IntfImg.LoadFromStream(SrcStream,ImgReader);
 
@@ -933,7 +933,7 @@ begin
     end;
 
     ImgWriter:=WriterClass.Create;
-    InitFPImageWriter(ImgWriter);
+    InitFPImageWriter(IntfImg, ImgWriter);
     IntfImg.SaveToStream(MemStream,ImgWriter);
     FinalizeFPImageWriter(ImgWriter);
     FreeAndNil(ImgWriter);
@@ -963,7 +963,7 @@ begin
   end;
 end;
 
-procedure TBitmap.InitFPImageReader(ImgReader: TFPCustomImageReader);
+procedure TBitmap.InitFPImageReader(IntfImg: TLazIntfImage; ImgReader: TFPCustomImageReader);
 var
   LazReader: TLazReaderBMP absolute ImgReader;
 begin
@@ -996,9 +996,17 @@ begin
   end;
 end;
 
-procedure TBitmap.InitFPImageWriter(ImgWriter: TFPCustomImageWriter);
+procedure TBitmap.InitFPImageWriter(IntfImg: TLazIntfImage; ImgWriter: TFPCustomImageWriter);
+var
+  BmpWriter: TFPWriterBMP absolute ImgWriter;
 begin
-
+  if ImgWriter is TFPWriterBMP then
+  begin
+    // set BPP
+    
+    // we can also look at PixelFormat, but it is not set at momemt
+    BmpWriter.BitsPerPixel := IntfImg.DataDescription.Depth;
+  end;
 end;
 
 procedure TBitmap.FinalizeFPImageReader(ImgReader: TFPCustomImageReader);

@@ -1159,8 +1159,8 @@ type
     procedure StoreOriginalStream(Stream: TStream; Size: integer); virtual;
     procedure WriteStreamWithFPImage(Stream: TStream; WriteSize: boolean;
                                WriterClass: TFPCustomImageWriterClass); virtual;
-    procedure InitFPImageReader(ImgReader: TFPCustomImageReader); virtual;
-    procedure InitFPImageWriter(ImgWriter: TFPCustomImageWriter); virtual;
+    procedure InitFPImageReader(IntfImg: TLazIntfImage; ImgReader: TFPCustomImageReader); virtual;
+    procedure InitFPImageWriter(IntfImg: TLazIntfImage; ImgWriter: TFPCustomImageWriter); virtual;
     procedure FinalizeFPImageReader(ImgReader: TFPCustomImageReader); virtual;
     procedure FinalizeFPImageWriter(ImgWriter: TFPCustomImageWriter); virtual;
   public
@@ -1261,7 +1261,7 @@ type
 
   TPortableNetworkGraphic = class(TFPImageBitmap)
   protected
-    procedure InitFPImageWriter(ImgWriter: TFPCustomImageWriter); override;
+    procedure InitFPImageWriter(IntfImg: TLazIntfImage; ImgWriter: TFPCustomImageWriter); override;
   public
     class function GetFileExtensions: string; override;
     class function GetDefaultFPReader: TFPCustomImageReaderClass; override;
@@ -1293,7 +1293,7 @@ type
     FBitmaps: TObjectList;
   protected
     procedure ReadData(Stream: TStream); override;
-    procedure InitFPImageReader(ImgReader: TFPCustomImageReader); override;
+    procedure InitFPImageReader(IntfImg: TLazIntfImage; ImgReader: TFPCustomImageReader); override;
   public
     class function GetFileExtensions: string; override;
     property Bitmaps: TObjectList read FBitmaps;
@@ -1973,9 +1973,9 @@ begin
   end;
 end;
 
-procedure TIcon.InitFPImageReader(ImgReader: TFPCustomImageReader);
+procedure TIcon.InitFPImageReader(IntfImg: TLazIntfImage; ImgReader: TFPCustomImageReader);
 begin
-  inherited InitFPImageReader(ImgReader);
+  inherited InitFPImageReader(IntfImg, ImgReader);
   if ImgReader is TLazReaderIcon then
     TLazReaderIcon(ImgReader).Icon := self;
 end;

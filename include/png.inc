@@ -20,9 +20,9 @@
 
 { TPortableNetworkGraphic }
 
-procedure TPortableNetworkGraphic.InitFPImageWriter(ImgWriter: TFPCustomImageWriter);
+procedure TPortableNetworkGraphic.InitFPImageWriter(IntfImg: TLazIntfImage; ImgWriter: TFPCustomImageWriter);
 begin
-  inherited InitFPImageWriter(ImgWriter);
+  inherited InitFPImageWriter(IntfImg, ImgWriter);
   if ImgWriter is TFPWriterPNG then
   begin
     TFPWriterPNG(ImgWriter).UseAlpha := True;
