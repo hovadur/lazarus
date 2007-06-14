@@ -127,24 +127,20 @@ class function TWin32WSCustomImageList.CreateHandle(AList: TCustomImageList;
 var
   FLags: DWord;
   hbmImage, hbmMask: HBITMAP;
-  i, depth: integer;
+  i: integer;
 begin                     
-  depth := GetColorDepth;
-  if WidgetSet.ThemeServices.ThemesAvailable and (depth = 32) then
-  begin
-    // 32 bpp bitmap with 8 bit alpha channel
-    Flags := ILC_COLOR32;
-  end else
-  begin
-    case depth of
-      04: FLAGS := ILC_COLOR4 or ILC_MASK;
-      08: FLAGS := ILC_COLOR8 or ILC_MASK;
-      16: FLAGS := ILC_COLOR16 or ILC_MASK;
-      24: FLAGS := ILC_COLOR24 or ILC_MASK;
-      32: FLAGS := ILC_COLOR32 or ILC_MASK;
+  case GetColorDepth of
+    04: FLAGS := ILC_COLOR4 or ILC_MASK;
+    08: FLAGS := ILC_COLOR8 or ILC_MASK;
+    16: FLAGS := ILC_COLOR16 or ILC_MASK;
+    24: FLAGS := ILC_COLOR24 or ILC_MASK;
+    32:
+      if WidgetSet.ThemeServices.ThemesAvailable then
+        FLAGS := ILC_COLOR32 // 32 bpp bitmap with 8 bit alpha channel
       else
-        FLAGS := ILC_COLOR or ILC_MASK;
-    end;
+        FLAGS := ILC_COLOR32 or ILC_MASK;
+    else
+      FLAGS := ILC_COLOR or ILC_MASK;
   end;
   Result := ImageList_Create(AWidth, AHeight, Flags, ACount, AGrow);
 
