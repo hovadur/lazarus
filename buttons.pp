@@ -429,7 +429,7 @@ type
     end;
     }
 type
-  TGetDefaultBitBtnGlyph = function(Kind: TBitBtnKind): TBitmap;
+  TGetDefaultBitBtnGlyph = function(Kind: TBitBtnKind; var Handled: Boolean): TBitmap;
 var
   GetDefaultBitBtnGlyph: TGetDefaultBitBtnGlyph = nil;
 
