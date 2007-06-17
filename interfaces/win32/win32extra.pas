@@ -202,6 +202,17 @@ const
 
 // for GetRandomRgn
   SYSRGN                  = 4;
+  
+// GetDeviceCaps consts
+  SHADEBLENDCAPS = 45;
+
+{ Capabilities }
+  SB_NONE = $00;
+  SB_CONST_ALPHA = $01;
+  SB_PIXEL_ALPHA = $02;
+  SB_PREMULT_ALPHA = $04;
+  SB_GRAD_RECT = $10;
+  SB_GRAD_TRI = $20;
 
 {not used anymore
 // missing listview macros
