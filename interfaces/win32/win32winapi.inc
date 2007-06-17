@@ -3186,6 +3186,7 @@ function TWin32WidgetSet.StretchMaskBlt(DestDC: HDC; X, Y, Width, Height: Intege
     Pixel: PRGBAQuad;
     ByteCount: PtrUInt;
     Header: Windows.TBitmapInfoHeader;
+    AnyAlpha: Boolean;
   begin
     Result := 0;
     // todo, process only requested rectangle
@@ -3196,11 +3197,13 @@ function TWin32WidgetSet.StretchMaskBlt(DestDC: HDC; X, Y, Width, Height: Intege
     
     Pixel := Data;
     ByteCount := ByteCount shr 2;
+    AnyAlpha := False;
     while ByteCount > 0 do
     begin
       Pixel^.Red := (Pixel^.Red * Pixel^.Alpha) shr 8;
       Pixel^.Green := (Pixel^.Green * Pixel^.Alpha) shr 8;
       Pixel^.Blue := (Pixel^.Blue * Pixel^.Alpha) shr 8;
+      AnyAlpha := AnyAlpha or (Pixel^.Alpha <> 0);
       Inc(Pixel);
       Dec(ByteCount);
     end;
@@ -3213,7 +3216,8 @@ function TWin32WidgetSet.StretchMaskBlt(DestDC: HDC; X, Y, Width, Height: Intege
     Header.biBitCount := 32;
     Header.biCompression := BI_RGB;
 
-    Result := Windows.CreateDIBitmap(SrcDC, Header, CBM_INIT, Data, Windows.TBitmapInfo((@Header)^), DIB_RGB_COLORS);
+    if AnyAlpha then
+      Result := Windows.CreateDIBitmap(SrcDC, Header, CBM_INIT, Data, Windows.TBitmapInfo((@Header)^), DIB_RGB_COLORS);
   end;
 var
   MaskDC, CopyDC, AlphaDC: HDC;
@@ -3223,6 +3227,7 @@ var
   Bmp, CopyBmp, AlphaBmp: HBITMAP;
   HasAlpha: Boolean;
   Blend: TBlendFunction;
+  Caps: Integer;
 begin
   //DbgDumpBitmap(Mask, 'StretchMaskBlt - Mask');
 
@@ -3231,18 +3236,23 @@ begin
   // get info
   HasAlpha := (Windows.GetObject(bmp, SizeOf(WinBmp), @WinBmp) <> 0)
           and (WinBmp.bmBitsPixel = 32);
+  // And test bmp for any color with changed alpha
   if HasAlpha
   then begin
     // premultiply pixels
     AlphaBmp := CreatePremultipliedBitmap(WinBmp, Bmp);
-    AlphaDC := Windows.CreateCompatibleDC(SrcDC);
-    AlphaObj := Windows.SelectObject(AlphaDC, AlphaBmp);
+    if AlphaBmp <> 0 then
+    begin
+      AlphaDC := Windows.CreateCompatibleDC(SrcDC);
+      AlphaObj := Windows.SelectObject(AlphaDC, AlphaBmp);
 
-    // init blendfunction
-    Blend.BlendOp := AC_SRC_OVER;
-    Blend.BlendFlags := 0;
-    Blend.SourceConstantAlpha := 255;
-    Blend.AlphaFormat := AC_SRC_ALPHA;
+      // init blendfunction
+      Blend.BlendOp := AC_SRC_OVER;
+      Blend.BlendFlags := 0;
+      Blend.SourceConstantAlpha := 255;
+      Blend.AlphaFormat := AC_SRC_ALPHA;
+    end else
+      HasAlpha := False;
   end;
 
   Windows.SetStretchBltMode(DestDC, STRETCH_HALFTONE);
