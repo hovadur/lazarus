@@ -1399,7 +1399,7 @@ begin
   end;
   FGetSetColorFunctionsUpdateNeeded := false;
 
-  if (Desc.MaskBitsPerPixel > 0) and (FRawImage.Mask <> nil)
+  if Desc.MaskBitsPerPixel > 0
   then begin
     ChooseRawBitsProc(Desc.MaskBitsPerPixel,
                       Desc.ByteOrder,

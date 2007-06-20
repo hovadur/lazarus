@@ -189,12 +189,22 @@ end;
  ------------------------------------------------------------------------------}
 function TCarbonWidgetSet.CreateBitmap(Width, Height: Integer; Planes,
   BitCount: Longint; BitmapBits: Pointer): HBITMAP;
+var
+  bmpType: TCarbonBitmapType;
 begin
   {$IFDEF VerboseWinAPI}
     DebugLn('TCarbonWidgetSet.CreateBitmap');
   {$ENDIF}
   
-  Result := HBITMAP(TCarbonBitmap.Create(Width, Height, BitCount, BitmapBits));
+  case BitCount of
+    1: bmpType := cbtMono;
+    32: bmpType := cbtRGBA;
+  else
+    bmpType := cbtRGB;
+  end;
+  
+  // winapi Bitmaps are on a word boundary
+  Result := HBITMAP(TCarbonBitmap.Create(Width, Height, BitCount, BitCount, cbaWord, bmpType, BitmapBits));
 end;
 
 
@@ -1070,11 +1080,6 @@ begin
     OriginDiff);
 end;
 
-function TCarbonWidgetSet.GetDesignerDC(WindowHandle: HWND): HDC;
-begin
-  Result:=inherited GetDesignerDC(WindowHandle);
-end;
-
 {------------------------------------------------------------------------------
   Method: GetDeviceCaps
   Params: DC    - Display device context
@@ -1350,53 +1355,6 @@ begin
   {$IFDEF VerboseWinAPI}
     DebugLn('TCarbonWidgetSet.GetProp Result: ' + DbgS(Result));
   {$ENDIF}
-end;
-
-function TCarbonWidgetSet.GetRawImageFromDevice(SrcDC: HDC;
-  const SrcRect: TRect; var NewRawImage: TRawImage): boolean;
-begin
-  Result:=inherited GetRawImageFromDevice(SrcDC, SrcRect, NewRawImage);
-end;
-
-{------------------------------------------------------------------------------
-  Method:  TCarbonWidgetSet.GetRawImageFromBitmap
-  Params:  SrcBitmap     - Source bitmap
-           SrcMaskBitmap - Source mask (ignored)
-           SrcRect       - Source rect (TODO)
-           NewRawImage   - New raw image
-  Returns: If the function succeeds
-
-  Creates a raw image from the specified bitmap
- ------------------------------------------------------------------------------}
-function TCarbonWidgetSet.GetRawImageFromBitmap(SrcBitmap,
-  SrcMaskBitmap: HBITMAP; const SrcRect: TRect; var NewRawImage: TRawImage
-  ): boolean;
-var
-  Bitmap: TCarbonBitmap;
-begin
-  Result := False;
-
-  {$IFDEF VerboseWinAPI}
-    DebugLn('TCarbonWidgetSet.GetRawImageFromBitmap SrcBitmap: ' + DbgS(SrcBitmap) +
-      ' SrcMaskBitmap: ' + DbgS(SrcMaskBitmap) + ' SrcRect: ' + DbgS(SrcRect));
-  {$ENDIF}
-  
-  if not CheckBitmap(SrcBitmap, 'GetRawImageFromBitmap') then Exit;
-  
-  Bitmap := TCarbonBitmap(SrcBitmap);
-
-  FillChar(NewRawImage, SizeOf(NewRawImage), 0);
-  FillStandardDescription(NewRawImage.Description);
-
-  NewRawImage.Description.Width := Bitmap.Width;
-  NewRawImage.Description.Height := Bitmap.Height;
-
-  NewRawImage.DataSize := Bitmap.DataSize;
-  ReAllocMem(NewRawImage.Data, NewRawImage.DataSize);
-  if NewRawImage.DataSize > 0 then
-    System.Move(Bitmap.Data^, NewRawImage.Data^, NewRawImage.DataSize);
-
-  Result := True;
 end;
 
 function TCarbonWidgetSet.GetRgnBox(RGN: HRGN; lpRect: PRect): Longint;
@@ -2354,8 +2312,8 @@ begin
       Exit;
     end;
     
-    Result := HBITMAP((ADC as TCarbonBitmapContext).GetBitmap);
-    (ADC as TCarbonBitmapContext).SetBitmap(TCarbonBitmap(GDIObj));
+    Result := HBITMAP(TCarbonBitmapContext(ADC).Bitmap);
+    TCarbonBitmapContext(ADC).Bitmap := TCarbonBitmap(GDIObj);
   end;
   
   {$IFDEF VerboseWinAPI}

@@ -50,6 +50,7 @@ function OSError(AResult: OSStatus; const AObject: TObject; const AMethodName, A
 var
   DefaultTextStyle: ATSUStyle; // default Carbon text style
   RGBColorSpace: CGColorSpaceRef; // global RGB color space
+  GrayColorSpace: CGColorSpaceRef; // global Gray color space
 
 {$I mackeycodes.inc}
 
@@ -399,7 +400,6 @@ begin
   Desc.Format := ricfRGBA;
 // Width and Height skipped
   Desc.PaletteColorCount := 0;
-  Desc.ColorCount := Desc.PaletteColorCount;
 
   Desc.BitOrder := riboReversedBits;
   Desc.ByteOrder := riboMSBFirst;
@@ -422,7 +422,7 @@ begin
   
   Desc.MaskBitOrder := riboReversedBits;
   Desc.MaskBitsPerPixel := 1;
-  Desc.MaskLineEnd := rileDQWordBoundary; // 128bit aligned ??? is this needed for mone bitmaps ??;
+  Desc.MaskLineEnd := rileByteBoundary;
   Desc.MaskShift := 0;
 end;
 
@@ -786,12 +786,14 @@ initialization
   OSError(
     ATSUCreateStyle(DefaultTextStyle), 'CarbonProc.initialization', SCreateStyle);
   RGBColorSpace := CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
+  GrayColorSpace := CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
 
 finalization
 
   OSError(
     ATSUDisposeStyle(DefaultTextStyle), 'CarbonProc.finalization', SDisposeStyle);
   CGColorSpaceRelease(RGBColorSpace);
-  
+  CGColorSpaceRelease(GrayColorSpace);
+
 
 end.

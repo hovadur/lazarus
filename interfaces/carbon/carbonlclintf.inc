@@ -78,6 +78,11 @@ begin
   Result:=inherited GetControlConstraints(Constraints);
 end;
 
+function TCarbonWidgetSet.GetDesignerDC(WindowHandle: HWND): HDC;
+begin
+  Result:=inherited GetDesignerDC(WindowHandle);
+end;
+
 {------------------------------------------------------------------------------
   Method:  GetLCLOwnerObject
   Params:  Handle - Handle of window
@@ -325,16 +330,27 @@ end;  {TCarbonWidgetSet.PromptUser}
 
  ------------------------------------------------------------------------------}
 function TCarbonWidgetSet.RawImage_CreateBitmaps(const ARawImage: TRawImage; out ABitmap, AMask: HBitmap; ASkipMask: Boolean): Boolean;
+const
+  ALIGNMAP: array[TRawImageLineEnd] of TCarbonBitmapAlignment = (cbaByte, cbaByte, cbaWord, cbaDWord, cbaQWord, cbaDQWord);
 var
   ADesc: TRawImageDescription absolute ARawImage.Description;
+  bmpType: TCarbonBitmapType;
 begin
   Result := False;
 
-  ABitmap := HBITMAP(TCarbonBitmap.Create(ADesc.Width, ADesc.Height, ADesc.Depth, ARawImage.Data));
+  if ADesc.Format = ricfGray
+  then bmpType := cbtGray
+  else if ADesc.Depth = 1
+  then bmpType := cbtMono
+  else if ADesc.AlphaPrec <> 0
+  then bmpType := cbtRGBA
+  else bmpType := cbtRGB;
 
-  if ASkipMask
-  then AMaskBitmap := 0
-  else AMaskBitmap := HBITMAP(TCarbonBitmap.Create(ADesc.Width, ADesc.Height, 1, ARawImage.Mask))
+  ABitmap := HBITMAP(TCarbonBitmap.Create(ADesc.Width, ADesc.Height, ADesc.Depth, ADesc.BitsPerPixel, ALIGNMAP[ADesc.LineEnd], bmpType, ARawImage.Data));
+
+  if ASkipMask or (ADesc.MaskBitsPerPixel = 0)
+  then AMask := 0
+  else AMask := HBITMAP(TCarbonBitmap.Create(ADesc.Width, ADesc.Height, 1, ADesc.MaskBitsPerPixel, ALIGNMAP[ADesc.MaskLineEnd], cbtMask, ARawImage.Mask));
 
   Result := True;
 end;
@@ -349,116 +365,12 @@ end;
   for the specified bitmap
  ------------------------------------------------------------------------------}
 function TCarbonWidgetSet.RawImage_DescriptionFromBitmap(ABitmap: HBITMAP; out ADesc: TRawImageDescription): Boolean;
-var
-  ACBitmap: TCarbonBitmap absolute ABitmap;
-  Prec, Shift, BPR: Byte;
-  AlphaInfo: CGImageAlphaInfo;
 begin
-  Result := False;
-
-  if not CheckBitmap(Bitmap, 'RawImage_DescriptionFromBitmap') then Exit;
-
-  FillChar(ADesc, SizeOf(Desc), 0);
-
-  ADesc.Format := ricfRGBA;
-  ADesc.Width := ACBitmap.Width;
-  ADesc.Height := ACBitmap.Height;
-
-  //ADesc.PaletteColorCount := 0;
-
-  ADesc.BitOrder := riboReversedBits;
-  ADesc.ByteOrder := riboMSBFirst;
-
-  BPR := CGImageGetBytesPerRow(ACBitmap.CGImage);
-  if BPR and $F = 0 then ADesc.LineEnd := rileDQWordBoundary     // 128bit aligned
-  else if BPR and $7 = 0 then ADesc.LineEnd := rileQWordBoundary //  64bit aligned
-  else if BPR and $3 = 0 then ADesc.LineEnd := rileWordBoundary  //  32bit aligned
-  else if BPR and $1 = 0 then ADesc.LineEnd := rileByteBoundary  //   8bit aligned
-  else ADesc.LineEnd := rileTight;
-
-  ADesc.LineOrder := riloTopToBottom;
-  ADesc.BitsPerPixel := CGImageGetBitsPerPixel(ACBitmap.CGImage);
-
-  ADesc.MaskBitOrder := riboReversedBits;
-  ADesc.MaskBitsPerPixel := 1;
-  ADesc.MaskLineEnd := rileDQWordBoundary; // 128bit aligned ??? is this needed for mone bitmaps ??;
-  // ADesc.MaskShift := 0;
-
-  Prec := CGImageGetBitsPerComponent(ACBitmap.CGImage);
-  AlphaInfo := CGImageGetAlphaInfo(ACBitmap.CGImage);
-  
-  if AlphaInfo <> kCGImageAlphaOnly
-  then begin
-    ADesc.RedPrec := Prec;
-    ADesc.GreenPrec := Prec;
-    ADesc.BluePrec := Prec;
-  end;
-
-  // alpha
-  case AlphaInfo of
-    kCGImageAlphaNone,
-    kCGImageAlphaNoneSkipLast,
-    kCGImageAlphaNoneSkipFirst: begin
-      ADesc.Depth := Prec * 3;
-      // ADesc.AlphaPrec := 0;
-    end;
-  else
-    ADesc.Depth := Prec * 4;
-    ADesc.AlphaPrec := Prec;
-  end;
-
-  case AlphaInfo of
-    kCGImageAlphaNone,
-    kCGImageAlphaNoneSkipLast: begin
-      // RGBx
-      Shift := 32 - Prec;
-      ADesc.RedShift := Shift;
-      Dec(Shift, Prec);
-      ADesc.GreenShift := Shift;
-      Dec(Shift, Prec);
-      ADesc.BlueShift := Shift;
-    end;
-    kCGImageAlphaNoneSkipFirst: begin
-      // xRGB
-      Shift := 0;
-      ADesc.BlueShift := Shift;
-      Inc(Shift, Prec);
-      ADesc.GreenShift := Shift;
-      Inc(Shift, Prec);
-      ADesc.RedShift := Shift;
-    end;
-    kCGImageAlphaPremultipliedFirst,
-    kCGImageAlphaFirst: begin
-      // ARGB
-      Shift := 32 - Prec;
-      ADesc.AlphaShift := Shift;
-      Dec(Shift, Prec);
-      ADesc.RedShift := Shift;
-      Dec(Shift, Prec);
-      ADesc.GreenShift := Shift;
-      Dec(Shift, Prec);
-      ADesc.BlueShift := Shift;
-    end;
-    kCGImageAlphaPremultipliedLast,
-    kCGImageAlphaLast: begin
-      // RGBA
-      Shift := 32 - Prec;
-      ADesc.RedShift := Shift;
-      Dec(Shift, Prec);
-      ADesc.GreenShift := Shift;
-      Dec(Shift, Prec);
-      ADesc.BlueShift := Shift;
-      Dec(Shift, Prec);
-      ADesc.AlphaShift := Shift;
-    end;
-    kCGImageAlphaOnly: begin
-      // A
-      //ADesc.AlphaShift := 0;
-    end;
-  end;
-
-  Result := True;
+  if CheckBitmap(ABitmap, 'RawImage_DescriptionFromBitmap')
+  then Result := RawImage_DescriptionFromCarbonBitmap(ADesc, TCarbonBitmap(ABitmap))
+  else Result := False;
 end;
+
 
 {------------------------------------------------------------------------------
   Function: RawImage_DescriptionFromDevice
@@ -475,9 +387,9 @@ begin
   Result := False;
 
   FillStandardDescription(ADesc);
-  if CheckDC(ADC, 'GetDeviceSize')
+  if CheckDC(ADC, 'RawImage_DescriptionFromDevice')
   then begin
-    P := TCarbonDeviceContext(DC).Size;
+    P := TCarbonDeviceContext(ADC).Size;
     ADesc.Width := P.X;
     ADesc.Height := P.Y
   end;
@@ -487,29 +399,45 @@ end;
 
 {------------------------------------------------------------------------------
   Function: RawImage_FromBitmap
-  Params: ABitmap:
-          AMask:
-          ARect:
-          ARawImage:
-  Returns:
+  Params: ARawImage: Image to create
+          ABitmap:   Source bitmap
+          AMask:     Source mask
+          ARect:     Source rect (TODO)
+  Returns: True if the function succeeds
 
+  Creates a raw image from the specified bitmap
  ------------------------------------------------------------------------------}
-function TCarbonWidgetSet.RawImage_FromBitmap(ABitmap, AMask: HBITMAP; const ARect: TRect; var ARawImage: TRawImage): Boolean;
+function TCarbonWidgetSet.RawImage_FromBitmap(out ARawImage: TRawImage; ABitmap, AMask: HBITMAP; const ARect: TRect): Boolean;
 begin
-  // Your code here
+  if CheckBitmap(ABitmap, 'RawImage_FromBitmap')
+  and ((AMask = 0) or CheckBitmap(AMask, 'RawImage_FromBitmap (mask)'))
+  then Result := RawImage_FromCarbonBitmap(ARawImage, TCarbonBitmap(ABitmap), TCarbonBitmap(AMask), ARect)
+  else Result := False;
 end;
 
 {------------------------------------------------------------------------------
   Function: RawImage_FromDevice
-  Params: ADC:
-          ARect:
-          ARawImage:
-  Returns:
+  Params: ARawImage: Image to create
+          ADC:       Source dc
+          ARect:     Source rect (TODO)
 
+  Returns: True if the function succeeds
+
+  Creates a raw image from the specified devicecontext
  ------------------------------------------------------------------------------}
-function TCarbonWidgetSet.RawImage_FromDevice(ADC: HDC; const ARect: TRect; var ARawImage: TRawImage): Boolean;
+function TCarbonWidgetSet.RawImage_FromDevice(out ARawImage: TRawImage; ADC: HDC; const ARect: TRect): Boolean;
+var
+  CBC: TCarbonBitmapContext absolute ADC;
 begin
-  // Your code here
+  Result := False;
+  if not CheckDC(ADC, 'RawImage_FromDevice') then Exit;
+  if not (CBC is TCarbonBitmapContext)
+  then begin
+    DebugLn('[WARNING] RawImage_FromDevice: DC is not a CarbonBitmapContext');
+    Exit;
+  end;
+
+  Result := RawImage_FromCarbonBitmap(ARawImage, CBC.Bitmap, nil, ARect)
 end;
 
 {------------------------------------------------------------------------------

@@ -160,6 +160,8 @@ type
   TCarbonBitmapContext = class(TCarbonDeviceContext)
   private
     FBitmap: TCarbonBitmap;
+    function GetBitmap: TCarbonBitmap;
+    procedure SetBitmap(const AValue: TCarbonBitmap);
   protected
     function GetSize: TPoint; override;
   public
@@ -167,8 +169,7 @@ type
     destructor Destroy; override;
     procedure Reset; override;
   public
-    function GetBitmap: TCarbonBitmap;
-    procedure SetBitmap(const AValue: TCarbonBitmap);
+    property Bitmap: TCarbonBitmap read GetBitmap write SetBitmap;
   end;
   
   // TODO: TCarbonPrinterContext
@@ -1209,7 +1210,7 @@ begin
     if (XSrc <> 0) or (YSrc <> 0) or (SrcWidth <> Bitmap.Width) or
       (SrcHeight <> Bitmap.Height) then
     begin
-      Image := Bitmap.GetSubImage(Bounds(XSrc, YSrc, SrcWidth, SrcHeight));
+      Image := Bitmap.CreateSubImage(Bounds(XSrc, YSrc, SrcWidth, SrcHeight));
       FreeImage := True;
     end
     else
@@ -1363,9 +1364,7 @@ begin
   else
   begin
     // create CGBitmapContext
-    CGContext := CGBitmapContextCreate(FBitmap.Data, FBitmap.Width,
-      FBitmap.Height, FBitmap.BitsPerComponent, FBitmap.BytesPerRow, RGBColorSpace,
-      kCGImageAlphaNoneSkipLast);
+    CGContext := FBitmap.CreateContext;
 
     // flip and offset CTM to upper left corner
     CGContextTranslateCTM(CGContext, 0, FBitmap.Height);

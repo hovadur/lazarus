@@ -551,39 +551,12 @@ end;
  ------------------------------------------------------------------------------}
 function TWin32WidgetSet.RawImage_FromDevice(out ARawImage: TRawImage; ADC: HDC; const ARect: TRect): Boolean;
 var
-  SrcWidth, SrcHeight: Integer;
-  hMemDC: HDC;
-  hMemBitmap: HBITMAP;
-  hOldObject: HGDIOBJ;
+  bmp: HBITMAP;
 begin
-  FillChar(ARawImage, SizeOf(ARawImage), 0);
-
-  // make bitmap compatible to src device
-  SrcWidth := ARect.Right - ARect.Left;
-  SrcHeight := ARect.Bottom - ARect.Top;
-  hMemBitmap := Windows.CreateCompatibleBitmap(ADC, SrcWidth, SrcHeight);
-  Result := hMemBitmap <> 0;
-  if not Result then exit;
-
-  // make memory device context compatible to device, to select bitmap in for copying
-  hMemDC := Windows.CreateCompatibleDC(ADC);
-  Result := hMemDC <> 0;
-  hOldObject := Windows.SelectObject(hMemDC, hMemBitmap);
-
-  // copy srcdc -> membitmap
-  Result := Result and Windows.BitBlt(hMemDC, 0, 0, SrcWidth, SrcHeight,
-        ADC, ARect.Left, ARect.Top, SRCCOPY);
-
-  // done copying, deselect bitmap from dc
-  Windows.SelectObject(hMemDC, hOldObject);
-
-  // copy membitmap -> rawimage
-  Result := Result and RawImage_FromBitmap(ARawImage, hMemBitmap, 0,
-    Rect(0, 0, SrcWidth, SrcHeight));
-
-  // free temporary stuff
-  Windows.DeleteDC(hMemDC);
-  Windows.DeleteObject(hMemBitmap);
+  bmp := Windows.GetCurrentObject(ADC, OBJ_BITMAP);
+  if bmp = 0
+  then Result := False
+  else Result := RawImage_FromBitmap(ARawImage, bmp, 0, ARect);
 end;
 
 procedure TWin32WidgetSet.RemoveEventHandler(var AHandler: PEventHandler);
