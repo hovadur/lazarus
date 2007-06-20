@@ -646,12 +646,37 @@ end;
   The CreateBitmap function creates a bitmap with the specified width, height,
   and color format (color planes and bits per pixel).
  ------------------------------------------------------------------------------}
-Function TWin32WidgetSet.CreateBitmap(Width, Height: Integer; Planes, BitCount: LongInt; BitmapBits: Pointer): HBITMAP;
-Begin
+function TWin32WidgetSet.CreateBitmap(Width, Height: Integer; Planes, BitCount: LongInt; BitmapBits: Pointer): HBITMAP;
+var
+  AInfo: Windows.TBitmapInfo;
+  Data: PByte;
+  DC: HDC;
+  dataSize: Integer;
+begin
   Assert(False, Format('Trace:> [TWin32WidgetSet.CreateBitmap] Width: %d, Height: %d, Planes: %d, BitCount: %d, BitmapBits: 0x%x', [Width, Height, Planes, BitCount, PtrInt(BitmapBits)]));
-  Result := Windows.CreateBitmap(Width, Height, Planes, BitCount, BitmapBits);
+
+  FillChar(AInfo, SizeOf(AInfo), 0);
+  with AInfo do
+  begin
+    bmiHeader.biSize := SizeOf(bmiHeader);
+    bmiHeader.biWidth := Width;
+    bmiHeader.biHeight := -Height;
+    bmiHeader.biPlanes := Planes;
+    bmiHeader.biBitCount := Min(24, BitCount); // we dont want 32bpp bitmaps
+    bmiHeader.biCompression := BI_RGB;
+  end;
+
+  DC := CreateCompatibleDC(0);
+  Result := Windows.CreateDIBSection(0, AInfo, DIB_RGB_COLORS, Data, 0, 0);
+  if BitmapBits <> nil then
+  begin
+    dataSize := ((Width * AInfo.bmiHeader.biBitCount + 3) and not 3) * Height;
+    Move(BitmapBits^, Data^, dataSize);
+  end;
+  DeleteDC(DC);
+
   Assert(False, Format('Trace:< [TWin32WidgetSet.CreateBitmap] --> 0x%x', [Integer(Result)]));
-End;
+end;
 
 {------------------------------------------------------------------------------
   Method:   CreateBrushIndirect
@@ -3186,7 +3211,6 @@ function TWin32WidgetSet.StretchMaskBlt(DestDC: HDC; X, Y, Width, Height: Intege
     Pixel: PRGBAQuad;
     ByteCount: PtrUInt;
     Header: Windows.TBitmapInfoHeader;
-    AnyAlpha: Boolean;
   begin
     Result := 0;
     // todo, process only requested rectangle
@@ -3197,13 +3221,11 @@ function TWin32WidgetSet.StretchMaskBlt(DestDC: HDC; X, Y, Width, Height: Intege
     
     Pixel := Data;
     ByteCount := ByteCount shr 2;
-    AnyAlpha := False;
     while ByteCount > 0 do
     begin
       Pixel^.Red := (Pixel^.Red * Pixel^.Alpha) shr 8;
       Pixel^.Green := (Pixel^.Green * Pixel^.Alpha) shr 8;
       Pixel^.Blue := (Pixel^.Blue * Pixel^.Alpha) shr 8;
-      AnyAlpha := AnyAlpha or (Pixel^.Alpha <> 0);
       Inc(Pixel);
       Dec(ByteCount);
     end;
@@ -3216,8 +3238,7 @@ function TWin32WidgetSet.StretchMaskBlt(DestDC: HDC; X, Y, Width, Height: Intege
     Header.biBitCount := 32;
     Header.biCompression := BI_RGB;
 
-    if AnyAlpha then
-      Result := Windows.CreateDIBitmap(SrcDC, Header, CBM_INIT, Data, Windows.TBitmapInfo((@Header)^), DIB_RGB_COLORS);
+    Result := Windows.CreateDIBitmap(SrcDC, Header, CBM_INIT, Data, Windows.TBitmapInfo((@Header)^), DIB_RGB_COLORS);
   end;
 var
   MaskDC, CopyDC, AlphaDC: HDC;
@@ -3227,7 +3248,6 @@ var
   Bmp, CopyBmp, AlphaBmp: HBITMAP;
   HasAlpha: Boolean;
   Blend: TBlendFunction;
-  Caps: Integer;
 begin
   //DbgDumpBitmap(Mask, 'StretchMaskBlt - Mask');
 
@@ -3236,23 +3256,18 @@ begin
   // get info
   HasAlpha := (Windows.GetObject(bmp, SizeOf(WinBmp), @WinBmp) <> 0)
           and (WinBmp.bmBitsPixel = 32);
-  // And test bmp for any color with changed alpha
   if HasAlpha
   then begin
     // premultiply pixels
     AlphaBmp := CreatePremultipliedBitmap(WinBmp, Bmp);
-    if AlphaBmp <> 0 then
-    begin
-      AlphaDC := Windows.CreateCompatibleDC(SrcDC);
-      AlphaObj := Windows.SelectObject(AlphaDC, AlphaBmp);
+    AlphaDC := Windows.CreateCompatibleDC(SrcDC);
+    AlphaObj := Windows.SelectObject(AlphaDC, AlphaBmp);
 
-      // init blendfunction
-      Blend.BlendOp := AC_SRC_OVER;
-      Blend.BlendFlags := 0;
-      Blend.SourceConstantAlpha := 255;
-      Blend.AlphaFormat := AC_SRC_ALPHA;
-    end else
-      HasAlpha := False;
+    // init blendfunction
+    Blend.BlendOp := AC_SRC_OVER;
+    Blend.BlendFlags := 0;
+    Blend.SourceConstantAlpha := 255;
+    Blend.AlphaFormat := AC_SRC_ALPHA;
   end;
 
   Windows.SetStretchBltMode(DestDC, STRETCH_HALFTONE);

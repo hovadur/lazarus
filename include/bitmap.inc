@@ -997,14 +997,28 @@ begin
 end;
 
 procedure TBitmap.InitFPImageWriter(IntfImg: TLazIntfImage; ImgWriter: TFPCustomImageWriter);
+const
+  PixelFormatToBppMap: array[TPixelFormat] of integer =
+  (
+{ pfDevice } 32,
+{ pf1bit   } 1,
+{ pf4bit   } 4,
+{ pf8bit   } 8,
+{ pf15bit  } 15,
+{ pf16bit  } 16,
+{ pf24bit  } 24,
+{ pf32bit  } 32,
+{ pfCustom } 32
+  );
 var
   BmpWriter: TFPWriterBMP absolute ImgWriter;
+//  bpp: integer;
 begin
   if ImgWriter is TFPWriterBMP then
   begin
     // set BPP
-    
-    // we can also look at PixelFormat, but it is not set at momemt
+    //BmpWriter.BitsPerPixel := PixelFormatToBppMap[PixelFormat];
+    // we can also look at PixelFormat, but it can be inexact
     BmpWriter.BitsPerPixel := IntfImg.DataDescription.Depth;
   end;
 end;
