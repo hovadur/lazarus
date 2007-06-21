@@ -1418,7 +1418,7 @@ begin
     gdk_window_get_size(GdiMask^.GDIBitmapObject, @W, @H);
     Result := gdk_pixmap_new(nil, W, H, 1);
     GC := gdk_gc_new(Result);
-    gdk_gc_set_function(GC, 11{GDK_COPY_INVERT});
+    gdk_gc_set_function(GC, {$ifdef gtk1}11{$else}GDK_COPY_INVERT{$endif});
     gdk_draw_pixmap(Result, GC, GdiMask^.GDIBitmapObject, 0, 0, 0, 0, -1, -1);
     gdk_gc_unref(GC);
 
@@ -1433,7 +1433,7 @@ begin
   // copy image mask
   gdk_draw_pixmap(Result, GC, GdiImage^.GDIPixmapObject.Mask, 0, 0, 0, 0, -1, -1);
   // and with mask
-  gdk_gc_set_function(GC, 6{GDK_AND_INVERT});
+  gdk_gc_set_function(GC, {$ifdef gtk1}6{$else}GDK_AND_INVERT{$endif});
   gdk_draw_pixmap(Result, GC, GdiMask^.GDIBitmapObject, 0, 0, 0, 0, -1, -1);
   gdk_gc_unref(GC);
 

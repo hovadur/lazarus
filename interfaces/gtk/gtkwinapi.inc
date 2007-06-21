@@ -4951,7 +4951,6 @@ begin
     If Drawable = nil then
       Result := GDK_Visual_Get_System^.Depth
     else
-      //gdk_window_get_geometry(Drawable, nil, nil, nil, nil, @Result);
       Result := gdk_drawable_get_depth(Drawable);
 
   PLANES : { Number of planes }
@@ -5279,7 +5278,12 @@ function TGtkWidgetSet.GetObject(GDIObj: HGDIOBJ; BufSize: Integer; Buf: Pointer
         gbPixmap:
           if GDIPixmapObject.Image <> nil
           then begin
+            {$ifdef gtk1}
             gdk_window_get_geometry(GDIPixmapObject.Image, nil, nil, @biWidth, @biHeight, @ImageDepth);
+            {$else}
+            gdk_drawable_get_size(GDIPixmapObject.Image, @biWidth, @biHeight);
+            ImageDepth := gdk_drawable_get_depth(GDIPixmapObject.Image);
+            {$endif}
             biBitCount := ImageDepth;
           end;
       end;

@@ -2179,7 +2179,12 @@ begin
     IsBitmap := False;
   end
   else begin
+    {$ifdef gtk1}
     gdk_window_get_geometry(ADrawable, nil, nil, @Width, @Height, @Depth);
+    {$else}
+    gdk_drawable_get_size(ADrawable, @Width, @Height);
+    Depth := gdk_drawable_get_depth(ADrawable);
+    {$endif}
     Visual := gdk_window_get_visual(ADrawable);
     // pixmaps and bitmaps dont have a visual, but for pixmaps we need one
     if Visual = nil
@@ -2342,7 +2347,7 @@ begin
   end;
 
   {$IFDEF VerboseRawImage}
-  DebugLn('TGtkWidgetSet.GetWindowRawImageDescription A ',RawImageDescriptionAsString(Desc));
+  //DebugLn('TGtkWidgetSet.GetWindowRawImageDescription A ',RawImageDescriptionAsString(Desc));
   {$ENDIF}
 
   Result := True;
@@ -2362,7 +2367,7 @@ begin
 
   // get raw image description
   {$IFDEF VerboseRawImage}
-  DebugLn('TGtkWidgetSet.RawImage_FromDrawable: Get Desc GdkWindow=',DbgS(GdkWindow));
+  //DebugLn('TGtkWidgetSet.RawImage_FromDrawable: Get Desc GdkWindow=',DbgS(GdkWindow));
   {$ENDIF}
   if not RawImage_DescriptionFromDrawable(ADesc, ADrawable, AAlpha <> nil)
   then begin
@@ -2374,7 +2379,7 @@ begin
   {$IFDEF VerboseRawImage}
   DebugLn('TGtkWidgetSet.RawImage_FromDrawable: Intersect ARect=',
     dbgs(ARect.Left),',',dbgs(ARect.Top),',',dbgs(ARect.Right),',',dbgs(ARect.Bottom),
-    ' DevW=',dbgs(Description.Width),' DevH=',dbgs(Description.Height));
+    ' DevW=',dbgs(ADesc.Width),' DevH=',dbgs(ADesc.Height));
   {$ENDIF}
 
   R := ARect;
@@ -2412,7 +2417,7 @@ begin
     ARawImage.DataSize := PtrUInt(Image^.bpl) * Image^.Height;
     {$IFDEF VerboseRawImage}
     DebugLn('TGtkWidgetSet.RawImage_FromDrawable: G Width=',dbgs(Image^.Width),' Height=',dbgs(Image^.Height),
-      ' BitsPerPixel=',dbgs(Description.BitsPerPixel),' bpl=',dbgs(Image^.bpl));
+      ' BitsPerPixel=',dbgs(ADesc.BitsPerPixel),' bpl=',dbgs(Image^.bpl));
     {$ENDIF}
 
     // copy data
@@ -2553,7 +2558,12 @@ begin
     Exit;
   end;
   
+  {$ifdef gtk1}
   gdk_window_get_geometry(AAlpha, nil, nil, @W, @H, @D);
+  {$else}
+  gdk_drawable_get_size(AAlpha, @W, @H);
+  D := gdk_drawable_get_depth(AAlpha);
+  {$endif}
   if (D <> 1) and (D <> 8)
   then begin
     DebugLn('WARNING: TGTKWidgetSet.RawImage_SetAlpha: Only a Depth of 1 or 8 is supported. (depth=%d)', [D]);
@@ -2718,11 +2728,11 @@ begin
 
 
     {$IFDEF VerboseRawImage}
-    DebugLn('TGtkWidgetSet.GetRawImageMaskFromGdkBitmap H ',
+    {DebugLn('TGtkWidgetSet.GetRawImageMaskFromGdkBitmap H ',
       ' Width=',dbgs(ARawImage.Description.Width),
       ' Height=',dbgs(ARawImage.Description.Height),
       ' AlphaBitsPerPixel=',dbgs(ARawImage.Description.AlphaBitsPerPixel),
-      ' MaskSize=',dbgs(ARawImage.MaskSize));
+      ' MaskSize=',dbgs(ARawImage.MaskSize));}
     {$ENDIF}
   finally
     gdk_image_destroy(Image);

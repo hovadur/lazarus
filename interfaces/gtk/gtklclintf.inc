@@ -158,17 +158,17 @@ begin
   try
     {$IFDEF VerboseRawImage}
     DebugLn('TGtkWidgetSet.CreateBitmapFromRawImage A ',
-      ' AlwaysCreateMask='+dbgs(AlwaysCreateMask),
-      ' Depth='+dbgs(RawImage.Description.Depth),
-      ' Width='+dbgs(RawImage.Description.Width),
-      ' Height='+dbgs(RawImage.Description.Height),
-      ' Data='+DbgS(RawImage.Data),
-      ' DataSize='+dbgs(RawImage.DataSize)+
-      ' Mask='+DbgS(RawImage.Mask)+
-      ' MaskSize='+dbgs(RawImage.MaskSize)+
-      ' Palette='+DbgS(RawImage.Palette)+
-      ' PaletteSize='+dbgs(RawImage.PaletteSize)+
-      ' BitsPerPixel='+dbgs(RawImage.Description.BitsPerPixel)+
+      ' ASkipMask='+dbgs(ASkipMask),
+      ' Depth='+dbgs(ARawImage.Description.Depth),
+      ' Width='+dbgs(ARawImage.Description.Width),
+      ' Height='+dbgs(ARawImage.Description.Height),
+      ' Data='+DbgS(ARawImage.Data),
+      ' DataSize='+dbgs(ARawImage.DataSize)+
+      ' Mask='+DbgS(ARawImage.Mask)+
+      ' MaskSize='+dbgs(ARawImage.MaskSize)+
+      ' Palette='+DbgS(ARawImage.Palette)+
+      ' PaletteSize='+dbgs(ARawImage.PaletteSize)+
+      ' BitsPerPixel='+dbgs(ARawImage.Description.BitsPerPixel)+
       '');
     {$ENDIF}
 
@@ -241,11 +241,11 @@ begin
         gdk_visual_unref(Visual);
 
         {$ifdef VerboseRawImage}
-        DebugLn('TGtkWidgetSet.CreateBitmapFromRawImage GdkImage: ',
+        {DebugLn('TGtkWidgetSet.CreateBitmapFromRawImage GdkImage: ',
           ' BytesPerLine=',dbgs(GdkImage^.bpl),
           ' BitsPerPixel=',dbgs(GetPGdkImageBitsPerPixel(GdkImage)),
           ' ByteOrder=',dbgs({$ifdef Gtk1}GdkImage^.byte_order{$else}ord(GdkImage^.byte_order){$endif}),
-          '');
+          '');}
         {$endif}
 
         if ARawImage.Description.BitsPerPixel <> GetGdkImageBitsPerPixel(GdkImage)
@@ -406,7 +406,7 @@ begin
       Exit;
     end;
     {$IFDEF VerboseRawImage}
-    DebugLn('TGtkWidgetSet.RawImage_FromBitmap A GdkPixmap=',DbgS(GdkPixmap),' SrcMaskBitmap=',DbgS(AMask));
+    DebugLn('TGtkWidgetSet.RawImage_FromBitmap A GdkPixmap=',DbgS(Drawable),' SrcMaskBitmap=',DbgS(Bitmap));
     {$ENDIF}
 
     //DbgDumpPixmap(Drawable, 'RawImage_FromBitmap - drawable');
