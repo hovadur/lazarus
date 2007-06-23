@@ -1270,16 +1270,6 @@ end;
 
 {$ifdef IMGLIST_OLDSTYLE}
 procedure DrawImageListIconOnWidget(ImgList: TCustomImageList;
-  Index: integer; DestWidget: PGTKWidget);
-begin
-  DrawImageListIconOnWidget(ImgList,Index,DestWidget,true,true,0,0);
-end;
-{$else}
-{$note TODO: Remove me}
-{$endif}
-
-{$ifdef IMGLIST_OLDSTYLE}
-procedure DrawImageListIconOnWidget(ImgList: TCustomImageList;
   Index: integer; DestWidget: PGTKWidget;
   CenterHorizontally, CenterVertically: boolean;
   DestLeft, DestTop: integer);
@@ -1302,7 +1292,7 @@ begin
   ImageWidth:=ImageRect.Right-ImageRect.Left;
   ImageHeight:=ImageRect.Bottom-ImageRect.Top;
   if (ImageWidth<1) or (ImageHeight<1) then exit;
-  
+
   WindowWidth:=DestWidget^.allocation.width;
   WindowHeight:=DestWidget^.allocation.height;
   if CenterHorizontally then
@@ -1320,8 +1310,52 @@ begin
   ReleaseDC(HDC(DestWidget),DestDC);
 end;
 {$else}
-{$note TODO: Remove me}
+{$note remove when gtk native imagelist will be ready}
+procedure DrawImageListIconOnWidget(ImgList: TCustomImageList;
+  Index: integer; DestWidget: PGTKWidget;
+  CenterHorizontally, CenterVertically: boolean;
+  DestLeft, DestTop: integer);
+// draw icon of imagelist centered on gdkwindow
+var
+  Bitmap: TBitmap;
+  ImageWidth: Integer;
+  ImageHeight: Integer;
+  WindowWidth, WindowHeight: integer;
+  DestDC: HDC;
+begin
+  if ImgList=nil then exit;
+  if (Index<0) or (Index>=ImgList.Count) then exit;
+  if (DestWidget=nil) then exit;
+  ImageWidth:=ImgList.Width;
+  ImageHeight:=ImgList.Height;
+  Bitmap := TBitmap.Create;
+  ImgList.GetBitmap(Index, Bitmap);
+  if (ImageWidth<1) or (ImageHeight<1) then exit;
+
+  WindowWidth:=DestWidget^.allocation.width;
+  WindowHeight:=DestWidget^.allocation.height;
+  if CenterHorizontally then
+    DestLeft:=DestWidget^.allocation.x+((WindowWidth-ImageWidth) div 2);
+  if CenterVertically then
+    DestTop:=DestWidget^.allocation.y+((WindowHeight-ImageHeight) div 2);
+  DestDC:=GetDC(HDC(DestWidget));
+
+  //DebugLn('DrawImageListIconOnWidget B DestXY=',DestLeft,',',DestTop,
+  //  ' DestWindowSize=',WindowWidth,',',WindowWidth,
+  //  ' SrcRect=',ImageRect.Left,',',ImageRect.Top,',',ImageWidth,'x',ImageHeight);
+  StretchBlt(DestDC, DestLeft, DestTop, ImageWidth, ImageHeight,
+    Bitmap.Canvas.Handle, 0, 0, ImageWidth, ImageHeight,
+    SRCCOPY);
+  ReleaseDC(HDC(DestWidget),DestDC);
+  Bitmap.Free;
+end;
 {$endif}
+
+procedure DrawImageListIconOnWidget(ImgList: TCustomImageList;
+  Index: integer; DestWidget: PGTKWidget);
+begin
+  DrawImageListIconOnWidget(ImgList,Index,DestWidget,true,true,0,0);
+end;
 
 function GetGdkImageBitsPerPixel(Image: PGdkImage): cardinal;
 begin
@@ -5903,12 +5937,9 @@ begin
     gdk_gc_set_clip_mask(gtk_widget_get_style(Widget)^.Black_gc, nil);
   end else
   begin
-    {$ifdef IMGLIST_OLDSTYLE}
+    {$note reimplement}
     DrawImageListIconOnWidget(LCLMenuItem.GetImageList, LCLMenuItem.ImageIndex,
       Widget, false, false, ALeft, ATop);
-    {$else}
-    {$note Implement}
-    {$endif}
   end;
 end;
 
