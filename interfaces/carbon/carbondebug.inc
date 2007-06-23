@@ -20,7 +20,7 @@
   
 // Show debug info when tracing:
 
-{$define DebugBitmaps}
+{.$define DebugBitmaps}
 
 {off $DEFINE DebugEventLoop}
 

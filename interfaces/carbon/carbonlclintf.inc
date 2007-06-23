@@ -387,7 +387,7 @@ begin
   Result := False;
 
   FillStandardDescription(ADesc);
-  if CheckDC(ADC, 'RawImage_DescriptionFromDevice')
+  if (ADC <> 0) and CheckDC(ADC, 'RawImage_DescriptionFromDevice')
   then begin
     P := TCarbonDeviceContext(ADC).Size;
     ADesc.Width := P.X;

@@ -2754,7 +2754,8 @@ begin
   end;
   
   Result := TCarbonDeviceContext(DestDC).StretchDraw(X, Y, Width, Height,
-    TCarbonBitmapContext(SrcDC), XSrc, YSrc, SrcWidth, SrcHeight, Rop);
+    TCarbonBitmapContext(SrcDC), XSrc, YSrc, SrcWidth, SrcHeight,
+    TCarbonBitmap(Mask), XMask, YMask, Rop);
 end;
 
 {------------------------------------------------------------------------------

@@ -148,20 +148,21 @@ type
     function GetARGBData: Pointer;
     function GetBitsPerComponent: Integer;
     function GetColorSpace: CGColorSpaceRef;
+    function GetInfo: CGBitmapInfo;
   public
     constructor Create(AWidth, AHeight, ADepth, ABitsPerPixel: Integer; AAlignment: TCarbonBitmapAlignment; AType: TCarbonBitmapType; AData: Pointer);
     destructor Destroy; override;
     procedure Update;
     function CreateSubImage(const ARect: TRect): CGImageRef;
-    function CreateContext: CGContextRef;
   public
     property BitsPerComponent: Integer read GetBitsPerComponent;
     property BytesPerRow: Integer read FBytesPerRow;
     property CGImage: CGImageRef read FCGImage;
+    property ColorSpace: CGColorSpaceRef read GetColorSpace;
     property Data: Pointer read FData;
     property DataSize: Integer read FDataSize;
     property Depth: Byte read FDepth;
-    property RGBAData: Pointer read FData;
+    property Info: CGBitmapInfo read GetInfo;
     property ARGBData: Pointer read GetARGBData;
     property Width: Integer read FWidth;
     property Height: Integer read FHeight;
@@ -268,7 +269,7 @@ const
     {cbtMask} kCGImageAlphaNone,
     {cbtGray} kCGImageAlphaNone,
     {cbtRGB}  kCGImageAlphaNone,
-    {sbtRGBA} kCGImageAlphaLast
+    {cbtRGBA} kCGImageAlphaLast
   );
 
   
@@ -803,6 +804,11 @@ begin
   else Result := RGBColorSpace
 end;
 
+function TCarbonBitmap.GetInfo: CGBitmapInfo;
+begin
+  Result := BITMAPINFOMAP[FType];
+end;
+
 {------------------------------------------------------------------------------
   Method:  TCarbonBitmap.GetARGBData
   Returns: Pointer to bitmap bits with swapped alpha component
@@ -886,7 +892,7 @@ begin
 
   Update;
   
-//  DbgDumpImage(FCGImage, 'TCarbonBitmap.Create');
+  //DbgDumpImage(FCGImage, 'TCarbonBitmap.Create');
 end;
 
 {------------------------------------------------------------------------------
@@ -917,10 +923,10 @@ begin
 
   CGDataProvider := CGDataProviderCreateWithData(nil, FData, FDataSize, nil);
   try
-    {if FType = cbtMask
+    if FType = cbtMask
     then FCGImage := CGImageMaskCreate(FWidth, FHeight, GetBitsPerComponent,
            FBitsPerPixel, FBytesPerRow, CGDataProvider, nil, 0)
-    else} FCGImage := CGImageCreate(FWidth, FHeight, GetBitsPerComponent,
+    else FCGImage := CGImageCreate(FWidth, FHeight, GetBitsPerComponent,
            FBitsPerPixel, FBytesPerRow, GetColorSpace, BITMAPINFOMAP[FType],
            CGDataProvider, nil, 0, kCGRenderingIntentDefault);
   finally
@@ -934,16 +940,11 @@ end;
  ------------------------------------------------------------------------------}
 function TCarbonBitmap.CreateSubImage(const ARect: TRect): CGImageRef;
 begin
-  if CGImage = nil then Result := nil
-  else
-    Result := CGImageCreateWithImageInRect(CGImage, RectToCGRect(ARect));
+  if CGImage = nil
+  then Result := nil
+  else Result := CGImageCreateWithImageInRect(CGImage, RectToCGRect(ARect));
 end;
 
-function TCarbonBitmap.CreateContext: CGContextRef;
-begin
-  Result := CGBitmapContextCreate(FData, FWidth, FHeight, GetBitsPerComponent,
-              FBytesPerRow, GetColorSpace, BITMAPINFOMAP[FType]{kCGImageAlphaNoneSkipLast});
-end;
 
 { TCarbonCursor }
 
@@ -1314,7 +1315,7 @@ initialization
   BlackPen := TCarbonPen.Create(True);
   
   DefaultContext := TCarbonBitmapContext.Create;
-  DefaultBitmap := TCarbonBitmap.Create(1, 1, 32, 32, cbaDQWord, cbtMono, nil);
+  DefaultBitmap := TCarbonBitmap.Create(1, 1, 1, 1, cbaDQWord, cbtMono, nil);
   DefaultContext.Bitmap := DefaultBitmap;
   
   ScreenContext := TCarbonScreenContext.Create;
