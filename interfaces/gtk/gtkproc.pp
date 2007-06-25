@@ -1,3 +1,12 @@
+{ $Id$
+                  ----------------------------------
+                  gtkproc.pp  -  gtk interface procs
+                  ----------------------------------
+
+ @lastmod($Date$)
+ @author(Marc Weustink <marc@@lazarus.dommelstein.net>)
+
+ This unit contains procedures/functions needed for the gtk <-> LCL interface
 {
  *****************************************************************************
  *                                                                           *
