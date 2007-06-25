@@ -343,7 +343,7 @@ begin
   else if ADesc.Depth = 1
   then bmpType := cbtMono
   else if ADesc.AlphaPrec <> 0
-  then bmpType := cbtRGBA
+  then bmpType := cbtARGB
   else bmpType := cbtRGB;
 
   ABitmap := HBITMAP(TCarbonBitmap.Create(ADesc.Width, ADesc.Height, ADesc.Depth, ADesc.BitsPerPixel, ALIGNMAP[ADesc.LineEnd], bmpType, ARawImage.Data));

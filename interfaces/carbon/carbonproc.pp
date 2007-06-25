@@ -409,17 +409,17 @@ begin
   Desc.BitsPerPixel := 32;
   Desc.Depth := 32;
 
-  // 8-8-8-8 mode, $RRGGBBAA
+  // 8-8-8-8 mode, $AARRGGBB (most, if not all, widgetsets use this order)
   Desc.RedPrec := 8;
   Desc.GreenPrec := 8;
   Desc.BluePrec := 8;
   Desc.AlphaPrec := 8;
-
-  Desc.RedShift   := 24;
-  Desc.GreenShift := 16;
-  Desc.BlueShift  := 08;
-  Desc.AlphaShift := 00;
   
+  Desc.AlphaShift := 24;
+  Desc.RedShift   := 16;
+  Desc.GreenShift := 08;
+  Desc.BlueShift  := 00;
+
   Desc.MaskBitOrder := riboReversedBits;
   Desc.MaskBitsPerPixel := 1;
   Desc.MaskLineEnd := rileByteBoundary;

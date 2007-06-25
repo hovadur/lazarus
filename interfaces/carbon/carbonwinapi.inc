@@ -198,7 +198,7 @@ begin
   
   case BitCount of
     1: bmpType := cbtMono;
-    32: bmpType := cbtRGBA;
+    32: bmpType := cbtARGB;
   else
     bmpType := cbtRGB;
   end;

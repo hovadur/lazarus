@@ -126,7 +126,7 @@ type
     cbtMono,  // mask or mono bitmap
     cbtGray,  // grayscale bitmap
     cbtRGB,   // color bitmap
-    cbtRGBA   // color bitmap with alpha channel
+    cbtARGB   // color bitmap with alpha channel
   );
 const
   cbtMask = cbtMono;
@@ -269,7 +269,7 @@ const
     {cbtMask} kCGImageAlphaNone,
     {cbtGray} kCGImageAlphaNone,
     {cbtRGB}  kCGImageAlphaNone,
-    {cbtRGBA} kCGImageAlphaLast
+    {cbtARGB} kCGImageAlphaFirst
   );
 
   
@@ -787,7 +787,7 @@ begin
     cbtMask,
     cbtGray: Result := FDepth;
     cbtRGB:  Result := FDepth div 3;
-    cbtRGBA: Result := FDepth shr 2;
+    cbtARGB: Result := FDepth shr 2;
   else
     Result := 0;
   end;
