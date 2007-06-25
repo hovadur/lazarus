@@ -268,10 +268,91 @@ type
   procedure TQColorToColorRef(const AColor: TQColor; out AColorRef: TColorRef);
   procedure ColorRefToTQColor(const AColorRef: TColorRef; var AColor:TQColor);
   procedure DebugRegion(const msg: string; Rgn: QRegionH);
+  
+function CheckGDIObject(const AGDIObject: HGDIOBJ; const AMethodName: String; AParamName: String = ''): Boolean;
+function CheckBitmap(const ABitmap: HBITMAP; const AMethodName: String; AParamName: String = ''): Boolean;
+//function CheckCursor(const ACursor: HCURSOR; const AMethodName: String; AParamName: String = ''): Boolean;
+
 
 implementation
 
-uses qtwidgets;
+uses
+  qtwidgets;
+  
+const
+  SQTWSPrefix = 'TQTWidgetSet.';
+
+  
+{------------------------------------------------------------------------------
+  Name:    CheckGDIObject
+  Params:  GDIObject   - Handle to a GDI Object (TQTFont, ...)
+           AMethodName - Method name
+           AParamName  - Param name
+  Returns: If the GDIObject is valid
+
+  Remark: All handles for GDI objects must be pascal objects so we can
+ distinguish between them
+ ------------------------------------------------------------------------------}
+function CheckGDIObject(const AGDIObject: HGDIOBJ; const AMethodName: String;
+  AParamName: String): Boolean;
+begin
+  {$note TODO: make TQTImage a TQtResource}
+  Result := (TObject(AGDIObject) is TQtResource) or (TObject(AGDIObject) is TQtImage);
+  if Result then Exit;
+
+  if Pos('.', AMethodName) = 0 then
+    DebugLn(SQTWSPrefix + AMethodName + ' Error - invalid GDIObject ' +
+      AParamName + ' = ' + DbgS(AGDIObject) + '!')
+  else
+    DebugLn(AMethodName + ' Error - invalid GDIObject ' + AParamName + ' = ' +
+      DbgS(AGDIObject) + '!');
+end;
+
+{------------------------------------------------------------------------------
+  Name:    CheckBitmap
+  Params:  Bitmap      - Handle to a bitmap (TQTBitmap)
+           AMethodName - Method name
+           AParamName  - Param name
+  Returns: If the bitmap is valid
+ ------------------------------------------------------------------------------}
+function CheckBitmap(const ABitmap: HBITMAP; const AMethodName: String;
+  AParamName: String): Boolean;
+begin
+  Result := TObject(ABitmap) is TQTImage;
+  if Result then Exit;
+
+  if Pos('.', AMethodName) = 0 then
+    DebugLn(SQTWSPrefix + AMethodName + ' Error - invalid bitmap ' +
+      AParamName + ' = ' + DbgS(ABitmap) + '!')
+  else
+    DebugLn(AMethodName + ' Error - invalid bitmap ' + AParamName + ' = ' +
+      DbgS(ABitmap) + '!');
+end;
+
+{------------------------------------------------------------------------------
+  Name:    CheckCursor
+  Params:  Cursor      - Handle to a cursor (TCarbonCursor)
+           AMethodName - Method name
+           AParamName  - Param name
+  Returns: If the cursor is valid
+ ------------------------------------------------------------------------------}
+(*
+function CheckCursor(const ACursor: HCURSOR; const AMethodName: String;
+  AParamName: String): Boolean;
+begin
+  Result := TObject(ACursor) is TQTCursor;
+  if Result then Exit;
+  
+  if Pos('.', AMethodName) = 0 then
+    DebugLn(SQTWSPrefix + AMethodName + ' Error - invalid cursor ' +
+      AParamName + ' = ' + DbgS(Cursor) + '!')
+  else
+    DebugLn(AMethodName + ' Error - invalid cursor ' + AParamName + ' = ' +
+      DbgS(ACursor) + '!');
+end;
+*)
+
+  
 
 { TQtAction }
 

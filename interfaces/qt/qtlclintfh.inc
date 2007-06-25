@@ -31,7 +31,6 @@
 //##apiwiz##sps##   // Do not remove
 
 function CreateStandardCursor(ACursor: SmallInt): hCursor; override;
-procedure FillStandardDescription(var Desc: TRawImageDescription);
 
 function PromptUser(const DialogCaption : string;
                     const DialogMessage : string;
@@ -47,6 +46,6 @@ function RawImage_CreateBitmaps(const ARawImage: TRawImage; out ABitmap, AMask: 
 function RawImage_DescriptionFromBitmap(ABitmap: HBITMAP; out ADesc: TRawImageDescription): Boolean; override;
 function RawImage_DescriptionFromDevice(ADC: HDC; out ADesc: TRawImageDescription): Boolean; override;
 
-function RawImage_FromBitmap(ABitmap, AMask: HBITMAP; const ARect: TRect; var ARawImage: TRawImage): Boolean; override;
-function RawImage_FromDevice(ADC: HDC; const ARect: TRect; var ARawImage: TRawImage): Boolean; override;
+function RawImage_FromBitmap(out ARawImage: TRawImage; ABitmap, AMask: HBITMAP; const ARect: TRect): Boolean; override;
+function RawImage_FromDevice(out ARawImage: TRawImage; ADC: HDC; const ARect: TRect): Boolean; override;
 //##apiwiz##eps##   // Do not remove, no wizard declaration after this line

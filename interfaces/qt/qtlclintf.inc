@@ -79,42 +79,6 @@ begin
 end;
 
 {------------------------------------------------------------------------------
-  Function: FillStandardDescription
-  Params:
-  Returns:
- ------------------------------------------------------------------------------}
-procedure TQtWidgetSet.FillStandardDescription(var Desc: TRawImageDescription);
-begin
-  FillChar(Desc, SizeOf(Desc), 0);
-
-  Desc.Format := ricfRGBA;
-  Desc.HasPalette := False;
-  // Width and Height not relevant
-  Desc.PaletteColorCount := 0;
-  Desc.BitOrder := riboReversedBits;
-  Desc.ByteOrder := riboLSBFirst;
-  Desc.LineOrder := riloTopToBottom;
-  Desc.ColorCount := Desc.PaletteColorCount;
-  Desc.BitsPerPixel := 32;
-  Desc.LineEnd := rileDWordBoundary;
-
-  // 8-8-8-8 mode, high byte is Alpha
-  Desc.RedPrec := 8;
-  Desc.GreenPrec := 8;
-  Desc.BluePrec := 8;
-  Desc.RedShift := 16;
-  Desc.GreenShift := 8;
-  Desc.BlueShift := 0;
-  Desc.Depth := 32;
-
-  Desc.AlphaPrec := 8;
-  Desc.AlphaSeparate := False;
-  // Qt wants dword-aligned data
-  Desc.AlphaLineEnd := rileDWordBoundary;
-  Desc.AlphaShift := 24;
-end;
-
-{------------------------------------------------------------------------------
   Function: PromptUser
   Params:
   Returns:
@@ -205,10 +169,48 @@ end;  {TQtWidgetSet.PromptUser}
           ASkipMask: When set, no mask is created
   Returns:
 
+  This functions is for TBitmap support
+
+  The memory allocation code was added because it is necessary for
+  TBitmap.LoadFromDevice support. For other operations it isnt needed
  ------------------------------------------------------------------------------}
 function TQtWidgetSet.RawImage_CreateBitmaps(const ARawImage: TRawImage; out ABitmap, AMask: HBitmap; ASkipMask: Boolean): Boolean;
+var
+  Desc: TRawImageDescription absolute ARawImage.Description;
+  NewData: PByte;
+  ImageFormat: QImageFormat;
 begin
-  // Your code here
+  Result := False;
+  ABitmap := 0;
+  AMask := 0;
+
+  //MWE: shouldn't the memory get copied at the place where it is needed,
+  //     its not really oo if the bitmap (or thisr party) needs this to do it here.
+  NewData := GetMem(ARawImage.DataSize);
+  Move(ARawImage.Data^, NewData^, ARawImage.DataSize);
+
+  {$note TODO: use format given in rawimage}
+  // this is only a rough implementation, there is no check against bitsperpixel
+  case Desc.Depth of
+    1: ImageFormat := QImageFormat_Mono;
+    //2..14: ;
+    15, 16: ImageFormat := QImageFormat_RGB16;
+    24: ImageFormat := QImageFormat_RGB32;
+    32: ImageFormat := QImageFormat_ARGB32;
+  else
+    ImageFormat := QImageFormat_ARGB32;
+  end;
+  ABitmap := HBitmap(TQtImage.Create(NewData, Desc.Width, Desc.Height, ImageFormat));
+  Result := ABitmap <> 0;
+  
+  if ASkipMask then Exit;
+  if ARawImage.Mask = nil then Exit;
+  if ARawImage.MaskSize = 0 then Exit;
+  
+  NewData := GetMem(ARawImage.MaskSize);
+  Move(ARawImage.Mask^, NewData^, ARawImage.MaskSize);
+
+  AMask := HBitmap(TQtImage.Create(NewData, Desc.Width, Desc.Height, QImageFormat_Mono));
 end;
 
 {------------------------------------------------------------------------------
@@ -217,10 +219,19 @@ end;
           ADesc:
   Returns:
 
+  Describes the inner format utilized by Qt + the specific information for this image
  ------------------------------------------------------------------------------}
 function TQtWidgetSet.RawImage_DescriptionFromBitmap(ABitmap: HBITMAP; out ADesc: TRawImageDescription): Boolean;
+var
+  Image: TQtImage absolute ABitmap;
 begin
-  // Your code here
+  Result := CheckBitmap(ABitmap, 'RawImage_DescriptionFromBitmap');
+  if not Result then Exit;
+
+  FillStandardDescription(ADesc);
+
+  ADesc.Width := Image.Width;
+  ADesc.Height := Image.Height;
 end;
 
 {------------------------------------------------------------------------------
@@ -229,10 +240,13 @@ end;
           ADesc:
   Returns:
 
+  Describes the standard format utilized by Qt
  ------------------------------------------------------------------------------}
 function TQtWidgetSet.RawImage_DescriptionFromDevice(ADC: HDC; out ADesc: TRawImageDescription): Boolean;
 begin
-  // Your code here
+  Result := true;
+
+  FillStandardDescription(ADesc);
 end;
 
 {------------------------------------------------------------------------------
@@ -243,10 +257,60 @@ end;
           ARawImage:
   Returns:
 
+  Creates a raw image from a bitmap
  ------------------------------------------------------------------------------}
-function TQtWidgetSet.RawImage_FromBitmap(ABitmap, AMask: HBITMAP; const ARect: TRect; var ARawImage: TRawImage): Boolean;
+function TQtWidgetSet.RawImage_FromBitmap(out ARawImage: TRawImage; ABitmap, AMask: HBITMAP; const ARect: TRect): Boolean;
+var
+  Desc: TRawImageDescription absolute ARawImage.Description;
+  Image: TQtImage absolute ABitmap;
+  Mask: TQtImage absolute AMask;
+  
+  WorkImage, WorkMask: TQtImage;
+  Width, Height: Integer;
 begin
-  // Your code here
+  Result := False;
+  
+  if not CheckBitmap(ABitmap, 'RawImage_FromBitmap') then Exit;
+  if (AMask <> 0) and not CheckBitmap(AMask, 'RawImage_FromBitmap (mask)') then Exit;
+
+
+  FillChar(ARawImage, SizeOf(ARawImage), 0);
+  FillStandardDescription(ARawImage.Description);
+  
+  Width := ARect.Right - ARect.Left;
+  Height := ARect.Bottom - ARect.Top;
+  
+  if (Width = Image.Width) and (Height = Image.Height)
+  then begin
+    WorkImage := Image;
+    WorkMask := Mask;
+  end
+  else begin
+    // Create SubImage
+    {$note TODO: Use create subimage when size doesn't match }
+    // for now return image
+    WorkImage := Image;
+    WorkMask := Mask;
+  end;
+
+  Desc.Width := WorkImage.width;
+  Desc.Height := WorkImage.height;
+
+  // copy data
+  ARawImage.DataSize := WorkImage.numBytes;
+  ReAllocMem(ARawImage.Data, ARawImage.DataSize);
+  if ARawImage.DataSize > 0 then
+     Move(WorkImage.bits^, ARawImage.Data^, ARawImage.DataSize);
+
+  if WorkMask <> nil
+  then begin
+    ARawImage.MaskSize := WorkMask.numBytes;
+    ReAllocMem(ARawImage.Mask, ARawImage.MaskSize);
+    if ARawImage.MaskSize > 0 then
+       Move(WorkMask.bits^, ARawImage.Mask^, ARawImage.MaskSize);
+  end;
+
+  Result := True;
 end;
 
 {------------------------------------------------------------------------------
@@ -256,10 +320,73 @@ end;
           ARawImage:
   Returns:
 
+  This function is utilized when the function TBitmap.LoadFromDevice is called
+
+  The main use for this function is to get a screenshot. It may have other uses,
+   but this is the only one implemented here.
+
+  MWE: exept for the desktop, there is always a bitmep selected in the DC.
+       So get this internal bitmap and pass it to RawImage_FromBitmap
  ------------------------------------------------------------------------------}
-function TQtWidgetSet.RawImage_FromDevice(ADC: HDC; const ARect: TRect; var ARawImage: TRawImage): Boolean;
+function TQtWidgetSet.RawImage_FromDevice(out ARawImage: TRawImage; ADC: HDC; const ARect: TRect): Boolean;
+var
+  Desc: TRawImageDescription absolute ARawImage.Description;
+
+  IsDesktopDC: Boolean;
+  SrcWidth, SrcHeight: Integer;
+  WinID: Cardinal;
+  desktop: QDesktopWidgetH;
+  ScreenSize: TSize;
+  Pixmap: TQtPixmap;
+  Image: QImageH;
 begin
-  // Your code here
+  {$ifdef VerboseQtWinAPI}
+    WriteLn('Trace:> [WinAPI GetRawImageFromDevice] SrcDC: ', dbghex(ADC),
+     ' SrcWidth: ', dbgs(ARect.Right - ARect.Left),
+     ' SrcHeight: ', dbgs(ARect.Bottom - ARect.Top));
+  {$endif}
+
+  Result := True;
+
+  FillStandardDescription(ARawImage.Description);
+
+  SrcWidth := ARect.Right - ARect.Left;
+  SrcHeight := ARect.Bottom - ARect.Top;
+
+  IsDesktopDC := True; // Hard-coded, but a real check should be made
+
+  if IsDesktopDC then
+  begin
+    desktop := QApplication_desktop;
+    QWidget_size(QDesktopWidget_screen(desktop), @ScreenSize);
+    WinID := QWidget_winId(QDesktopWidget_screen(desktop));
+
+    Pixmap := TQtPixmap.Create(@ScreenSize);
+    try
+      Pixmap.grabWindow(WinID);
+      Image := QImage_Create;
+      Pixmap.toImage(Image);
+      ARawImage.DataSize := QImage_numBytes(Image);
+      ARawImage.Data := GetMem(ARawImage.DataSize);
+      Move(QImage_bits(Image)^, ARawImage.Data^, ARawImage.DataSize);
+    finally
+      Pixmap.Free;
+    end;
+
+    // In this case we use the size of the desktop
+
+    Desc.Width := QWidget_width(QApplication_desktop);
+    Desc.Height := QWidget_height(QApplication_desktop);
+  end
+  else
+  begin
+    {$note TODO: get DC bitmap}
+    Result := False;
+  end;
+
+  {$ifdef VerboseQtWinAPI}
+    WriteLn('Trace:< [WinAPI GetRawImageFromDevice]');
+  {$endif}
 end;
 
 //##apiwiz##eps##   // Do not remove, no wizard declaration after this line

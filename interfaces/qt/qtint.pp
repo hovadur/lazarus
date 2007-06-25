@@ -40,7 +40,9 @@ uses
   Classes, SysUtils, Math, Types,
   // LCL
   InterfaceBase, LCLProc, LCLType, LMessages, Controls, ExtCtrls, Forms,
-  Dialogs, StdCtrls, Comctrls, LCLIntf, GraphType, Themes;
+  Dialogs, StdCtrls, Comctrls, LCLIntf, GraphType, Themes,
+  // WS
+  qtproc;
 
 type
 
