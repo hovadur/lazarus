@@ -1,4 +1,4 @@
-unit winceproc; 
+unit winceproc;
 
 {$mode objfpc}{$H+}
 
@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Classes, LMessages, LCLType, LCLProc, Controls, Forms, Menus,
-  WinCEWinAPIEmu;
+  WinCEWinAPIEmu, GraphType;
   
 Type
   TEventType = (etNotify, etKey, etKeyPress, etMouseWheel, etMouseUpDown);
@@ -46,17 +46,23 @@ function WideStringToString(inWideString : WideString) : String;
 function WM_To_String(WM_Message: Integer): string;
 function WindowPosFlagsToString(Flags: UINT): string;
 procedure EventTrace(Message: String; Data: TObject);
-Procedure AssertEx(Const Message: String; Const PassErr: Boolean;
-  Const Severity: Byte);
-Procedure AssertEx(Const PassErr: Boolean; Const Message: String);
-Procedure AssertEx(Const Message: String);
-Function GetShiftState: TShiftState;
-Function DeliverMessage(Const Target: Pointer; Var Message): Integer;
-Function DeliverMessage(Const Target: TObject; Var Message: TLMessage): Integer;
-Procedure CallEvent(Const Target: TObject; Event: TNotifyEvent;
-  Const Data: Pointer; Const EventType: TEventType);
-Function ObjectToHWND(Const AObject: TObject): HWND;
+procedure AssertEx(const Message: String; const PassErr: Boolean;
+  const Severity: Byte);
+procedure AssertEx(const PassErr: Boolean; const Message: String);
+procedure AssertEx(const Message: String);
+function GetShiftState: TShiftState;
+function DeliverMessage(const Target: Pointer; var Message): Integer;
+function DeliverMessage(const Target: TObject; var Message: TLMessage): Integer;
+procedure CallEvent(const Target: TObject; Event: TNotifyEvent;
+  const Data: Pointer; const EventType: TEventType);
+function ObjectToHWND(Const AObject: TObject): HWND;
 function GetDesigningBorderStyle(const AForm: TCustomForm): TFormBorderStyle;
+
+procedure FillRawImageDescriptionColors(var ADesc: TRawImageDescription);
+procedure FillRawImageDescription(const ABitmapInfo: Windows.TBitmap; out ADesc: TRawImageDescription);
+
+function GetBitmapBytes(ABitmap: HBITMAP; const ARect: TRect; var AData: Pointer; var ADataSize: PtrUInt): Boolean;
+
 
 
 //roozbeh:these are simply copy-pasted from win32...i bet most of them can be changed
@@ -637,7 +643,194 @@ Begin
   Result := Handle;
   If Handle = 0 Then
     Assert (False, 'Trace:[ObjectToHWND]****** Warning: handle = 0 *******');
-End;
+end;
+
+procedure FillRawImageDescriptionColors(var ADesc: TRawImageDescription);
+begin
+  case ADesc.BitsPerPixel of
+    1,4,8:
+      begin
+        // palette mode, no offsets
+        ADesc.Format := ricfGray;
+        ADesc.RedPrec := ADesc.BitsPerPixel;
+        ADesc.GreenPrec := 0;
+        ADesc.BluePrec := 0;
+        ADesc.RedShift := 0;
+        ADesc.GreenShift := 0;
+        ADesc.BlueShift := 0;
+      end;
+    16:
+      begin
+        // 5-6-5 mode
+        //roozbeh all changed from 5-5-5 to 5-6-5
+        ADesc.RedPrec := 5;
+        ADesc.GreenPrec := 6;
+        ADesc.BluePrec := 5;
+        ADesc.RedShift := 11;
+        ADesc.GreenShift := 5;
+        ADesc.BlueShift := 0;
+        ADesc.Depth := 16;
+      end;
+    24:
+      begin
+        // 8-8-8 mode
+        ADesc.RedPrec := 8;
+        ADesc.GreenPrec := 8;
+        ADesc.BluePrec := 8;
+        ADesc.RedShift := 16;
+        ADesc.GreenShift := 8;
+        ADesc.BlueShift := 0;
+      end;
+  else    //  32:
+    // 8-8-8-8 mode, high byte can be native alpha or custom 1bit maskalpha
+    ADesc.AlphaPrec := 8;
+    ADesc.RedPrec := 8;
+    ADesc.GreenPrec := 8;
+    ADesc.BluePrec := 8;
+    ADesc.AlphaShift := 24;
+    ADesc.RedShift := 16;
+    ADesc.GreenShift := 8;
+    ADesc.BlueShift := 0;
+    ADesc.Depth := 32;
+  end;
+end;
+
+
+procedure FillRawImageDescription(const ABitmapInfo: Windows.TBitmap; out ADesc: TRawImageDescription);
+begin
+  FillChar(ADesc, SizeOf(ADesc), 0);
+
+  ADesc.Format := ricfRGBA;
+
+  ADesc.Depth := ABitmapInfo.bmBitsPixel;             // used bits per pixel
+  ADesc.Width := ABitmapInfo.bmWidth;
+  ADesc.Height := ABitmapInfo.bmHeight;
+  ADesc.BitOrder := riboReversedBits;
+  ADesc.ByteOrder := riboLSBFirst;
+  ADesc.LineOrder := riloTopToBottom;
+  ADesc.BitsPerPixel := ABitmapInfo.bmBitsPixel;      // bits per pixel. can be greater than Depth.
+  ADesc.LineEnd := rileDWordBoundary;
+
+  if ABitmapInfo.bmBitsPixel <= 8
+  then begin
+    // each pixel is an index in the palette
+    // TODO, ColorCount
+    ADesc.PaletteColorCount := 0;
+  end
+  else ADesc.PaletteColorCount := 0;
+
+  FillRawImageDescriptionColors(ADesc);
+  
+  ADesc.MaskBitsPerPixel := 1;
+  ADesc.MaskShift := 0;
+  ADesc.MaskLineEnd := rileWordBoundary; // CreateBitmap requires word boundary
+  ADesc.MaskBitOrder := riboReversedBits;
+end;
+
+function GetBitmapBytes(ABitmap: HBITMAP; const ARect: TRect; var AData: Pointer; var ADataSize: PtrUInt): Boolean;
+  function FillData(AWidth, AHeight, ARowStride: Integer; ABPP: Word; ASource: PByte): Boolean;
+  var
+    W, H, RS, x: Integer;
+    P, RowPtr: PByte;
+    ShiftL, ShiftR: Byte;
+  begin
+    if  (ARect.Left = 0) and (ARect.Top = 0)
+    and (ARect.Right = AWidth) and (ARect.Bottom = AHeight)
+    then begin
+      // full copy
+      ADataSize := AHeight * ARowStride;
+      ReallocMem(AData, ADataSize);
+      Move(ASource^, AData^, ADataSize);
+      Exit(True);
+    end;
+    
+    // check if we are within bounds
+    Result := False;
+    if ARect.Left < 0 then Exit;
+    if ARect.Top < 0 then Exit;
+    if ARect.Right > AWidth then Exit;
+    if ARect.Bottom > AHeight then Exit;
+
+    // partial copy
+    W := ARect.Right - ARect.Left;
+    H := ARect.Bottom - ARect.Top;
+    if W < 0 then Exit;
+    if H < 0 then Exit;
+    
+    if W = AWidth
+    then begin
+      // easy case, only H lines to copy
+      // note that the lines are upside down
+      ADataSize := H * ARowStride;
+      ReallocMem(AData, ADataSize);
+      Move(ASource[(AHeight - ARect.Bottom) * ARowStride], AData^, ADataSize);
+      Exit(True);
+    end;
+    
+    // common
+    RS := (((W * ABPP) shr 3) + 3) and not 3;
+    ADataSize := H * RS;
+    ReallocMem(AData, ADataSize);
+    // move to start line
+    Inc(ASource, (AHeight - ARect.Bottom) * ARowStride);
+
+    if ABPP and 7 = 0
+    then begin
+      // Partial width, byte aligned
+      // move to left pixel
+      Inc(ASource, ARect.Left);
+      P := AData;
+      while H > 0 do
+      begin
+        Move(ASource^, P^, RS);
+        Inc(ASource, ARowStride);
+        Inc(P, RS);
+        Dec(H);
+      end;
+      Exit(True);
+    end;
+    
+    // Partial width, not aligned
+    // move to left pixel
+    Inc(ASource, (ARect.Left * ABPP) shr 3);
+    ShiftL := (ARect.Left * ABPP) and 7;
+    ShiftR := 8 - ShiftL;
+    RowPtr := AData;
+    while H > 0 do
+    begin
+      P := RowPtr;
+      for x := 0 to RS - 1 do
+      begin
+        p^ := (ASource[x] shl ShiftL) or (ASource[x+1] shr ShiftR);
+        Inc(p);
+      end;
+      Inc(ASource, ARowStride);
+      Inc(RowPtr, RS);
+      Dec(H);
+    end;
+    Result := True;
+  end;
+  
+var
+  Section: Windows.TDIBSection;
+begin
+  // first try if the bitmap is created as section
+  if Windows.GetObject(ABitmap, SizeOf(Section), @Section) > 0
+  then begin
+    with Section.dsBm do
+      Result := FillData(bmWidth, bmHeight, bmWidthBytes, bmBitsPixel, bmBits);
+    Exit;
+  end;
+  
+  // bitmap is not a section, retrieve only bitmap
+  if Windows.GetObject(ABitmap, SizeOf(Section.dsBm), @Section) = 0
+  then Exit(False);
+
+  {$note TODO: create copy bitmap to section and use bits}
+
+  Result := True;
+end;
+
 
 (***********************************************************************
   Widget member Functions
@@ -852,7 +1045,7 @@ begin
   Result:=GetLCLClientBoundsOffset(OwnerObject, Rect);
 end;
 
-Procedure LCLBoundsToWin32Bounds(Sender: TObject;
+procedure LCLBoundsToWin32Bounds(Sender: TObject;
   var Left, Top, Width, Height: Integer);
 var
   ORect: TRect;
