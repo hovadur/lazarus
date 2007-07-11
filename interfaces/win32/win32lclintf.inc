@@ -404,6 +404,9 @@ var
     Header: Windows.TBitmapInfoHeader;
     Colors: array[0..1] of Cardinal; // reserve extra color for mono bitmaps
   end;
+  BitsPtr: Pointer;
+  DataSize: Integer;
+  Align: Byte;
 begin
   Result := False;
   AMask := 0;
@@ -420,11 +423,25 @@ begin
   Info.Colors[1] := $FFFFFFFF;
 
   DC := Windows.GetDC(0);
-  ABitmap := Windows.CreateDIBitmap(DC, Info.Header, CBM_INIT, ARawImage.Data, Windows.PBitmapInfo(@Info)^, DIB_RGB_COLORS);
+  // Use createDIBSection, since only devicedepth bitmaps can be selected into a DC
+  // when they are created with createDIBitmap
+  //  ABitmap := Windows.CreateDIBitmap(DC, Info.Header, CBM_INIT, ARawImage.Data, Windows.PBitmapInfo(@Info)^, DIB_RGB_COLORS);
+  ABitmap := Windows.CreateDIBSection(DC, Windows.PBitmapInfo(@Info)^, DIB_RGB_COLORS, BitsPtr, 0, 0);
   //DbgDumpBitmap(ABitmap, 'CreateBitmaps - Image');
-  ReleaseDC(0, DC);
+  Windows.ReleaseDC(0, DC);
 
   if ABitmap = 0 then Exit;
+  if BitsPtr = nil then Exit;
+
+  // copy the image data
+  DataSize := (Windows.MulDiv(ADesc.BitsPerPixel, ADesc.Width, 8) + 3) and not 3;
+  Align := DataSize and 3;
+  if Align <> 0
+  then Inc(DataSize, 4 - Align);
+  DataSize := DataSize * ADesc.Height;
+  if DataSize > ARawImage.DataSize
+  then DataSize := ARawImage.DataSize;
+  Move(ARawImage.Data^, BitsPtr^, DataSize);
   if ASkipMask then Exit(True);
 
   AMask := Windows.CreateBitmap(ADesc.Width, ADesc.Height, 1, 1, ARawImage.Mask);
@@ -463,7 +480,7 @@ begin
   FillChar(ADesc, SizeOf(ADesc), 0);
 
   if ADC = 0
-  then DC := GetDC(0)
+  then DC := Windows.GetDC(0)
   else DC := ADC;
 
   ADesc.Format := ricfRGBA;
@@ -486,7 +503,7 @@ begin
   end;
   
   if ADC = 0
-  then ReleaseDC(0, DC);
+  then Windows.ReleaseDC(0, DC);
 
   FillRawImageDescriptionColors(ADesc);
 

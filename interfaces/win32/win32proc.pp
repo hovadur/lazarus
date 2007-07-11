@@ -1201,7 +1201,7 @@ begin
         ADesc.BlueShift := 0;
       end;
   else    //  32:
-    // 0-8-8-8 mode, high byte can be native alpha or custom 1bit maskalpha
+    // 8-8-8-8 mode, high byte can be native alpha or custom 1bit maskalpha
     ADesc.AlphaPrec := 8;
     ADesc.RedPrec := 8;
     ADesc.GreenPrec := 8;
@@ -1217,7 +1217,7 @@ end;
 procedure FillRawImageDescription(const ABitmapInfo: Windows.TBitmap; out ADesc: TRawImageDescription);
 begin
   ADesc.Format := ricfRGBA;
-      // if true,
+
   ADesc.Depth := ABitmapInfo.bmBitsPixel;             // used bits per pixel
   ADesc.Width := ABitmapInfo.bmWidth;
   ADesc.Height := ABitmapInfo.bmHeight;
