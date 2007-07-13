@@ -225,7 +225,6 @@ type
     {$ifdef IMGLIST_OLDSTYLE}
     property Handle: THandle read FHandle;
     {$else}
-    property Handle;
     property HandleAllocated;
     {$endif}
     property Height: Integer read FHeight write SetHeight default 16;

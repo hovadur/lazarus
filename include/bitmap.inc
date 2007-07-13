@@ -825,10 +825,12 @@ begin
     // the next will cause that all images are loaded in pfDevice format.
     // This is incompatible with delphi
     IntfImg.DataDescription := GetDescriptionFromDevice(0, 0, 0);
-    ImgReader:=ReaderClass.Create;
+    ImgReader := ReaderClass.Create;
     InitFPImageReader(IntfImg, ImgReader);
     OldStreamPosition:=SrcStream.Position;
-    IntfImg.LoadFromStream(SrcStream,ImgReader);
+    IntfImg.LoadFromStream(SrcStream, ImgReader);
+    if (ImgReader is TLazReaderBMP) and (TLazReaderBMP(ImgReader).MaskMode = lrmmAuto)
+    then FTransparentColor := FPColorToTColor(TLazReaderBMP(ImgReader).MaskColor);
 
     ImgSize := SrcStream.Position - OldStreamPosition;
     if UseSize

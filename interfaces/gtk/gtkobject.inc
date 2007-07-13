@@ -2922,7 +2922,7 @@ var
 
     SrcPixmap := SrcGDIBitmap^.GDIPixmapObject.Image;
     MskBitmap := CreateGdkMaskBitmap(HBITMAP(SrcGDIBitmap), Mask);
-
+    
     {$IFDEF VerboseStretchCopyArea}
     DebugLn('SrcDevBitmapToDrawable SrcPixmap=[',GetWindowDebugReport(SrcPixmap),']',
       ' MaskPixmap=[',GetWindowDebugReport(MaskPixmap),']');
