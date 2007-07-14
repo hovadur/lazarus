@@ -136,7 +136,6 @@ type
   TCarbonBitmap = class(TCarbonGDIObject)
   private
     FData: Pointer;
-    FARGBData: Pointer;
     FDataSize: Integer;
     FBytesPerRow: Integer;
     FDepth: Byte;
@@ -145,7 +144,6 @@ type
     FHeight: Integer;
     FType: TCarbonBitmapType;
     FCGImage: CGImageRef;
-    function GetARGBData: Pointer;
     function GetBitsPerComponent: Integer;
     function GetColorSpace: CGColorSpaceRef;
     function GetInfo: CGBitmapInfo;
@@ -163,7 +161,6 @@ type
     property DataSize: Integer read FDataSize;
     property Depth: Byte read FDepth;
     property Info: CGBitmapInfo read GetInfo;
-    property ARGBData: Pointer read GetARGBData;
     property Width: Integer read FWidth;
     property Height: Integer read FHeight;
   end;
@@ -810,42 +807,6 @@ begin
 end;
 
 {------------------------------------------------------------------------------
-  Method:  TCarbonBitmap.GetARGBData
-  Returns: Pointer to bitmap bits with swapped alpha component
- ------------------------------------------------------------------------------}
-function TCarbonBitmap.GetARGBData: Pointer;
-var
-  i, j: integer;
-  RowPtr, BytePtr: PByte;
-begin
-  if (FData = nil) or (FARGBData <> nil)
-  then begin
-    Result := FARGBData;
-    Exit;
-  end;
-
-  // Since we need to shift from $RRGGBBAA to $AARRGGBB we move the data with
-  // one byte offset so that the RRGGBB part is in place
-  System.GetMem(FARGBData, FDataSize + 1);
-  System.Move(FData^, PByte(FARGBData)[1], FDataSize);
-
-  // now only the Alpha part needs to get inplace
-  RowPtr := FARGBData;
-  for i := 0 to FHeight - 1 do
-  begin
-    BytePtr := RowPtr;
-    for j := 0 to FWidth - 1 do
-    begin
-      BytePtr[0] := BytePtr[4];
-      Inc(BytePtr, 4);
-    end;
-    Inc(RowPtr, FBytesPerRow);
-  end;
-
-  Result := FARGBData;
-end;
-
-{------------------------------------------------------------------------------
   Method:  TCarbonBitmap.Create
   Params:  AWidth        - Bitmap width
            AHeight       - Bitmap height
@@ -904,7 +865,6 @@ destructor TCarbonBitmap.Destroy;
 begin
   CGImageRelease(FCGImage);
   System.FreeMem(FData);
-  System.FreeMem(FARGBData);
 
   inherited Destroy;
 end;
@@ -1019,7 +979,7 @@ begin
   FPixmapHandle^^.cmpCount := ABitmap.Depth div FPixmapHandle^^.cmpSize;  // $AARRGGBB
   FPixmapHandle^^.pixelSize := ABitmap.Depth; // depth
   FPixmapHandle^^.pmTable := nil;
-  FPixmapHandle^^.baseAddr := Ptr(ABitmap.ARGBData);
+  FPixmapHandle^^.baseAddr := Ptr(ABitmap.Data);
 
   FQDHardwareCursorName := Application.Title + LazarusCursorInfix + IntToStr(Integer(Self));
   OSError(
@@ -1080,7 +1040,7 @@ begin
   FQDColorCursorHandle^^.crsrData := NewHandleClear(rowBytes * FPixmapHandle^^.bounds.bottom);
 
   // fill cursor bitmap and mask
-  SrcRowPtr := ABitmap.ARGBData;
+  SrcRowPtr := ABitmap.Data;
   DstRowPtr := PByte(FQDColorCursorHandle^^.crsrData^);
   for i := 0 to 15 do
   begin
