@@ -2198,7 +2198,7 @@ begin
     Exit;
   end;
 
-  FillChar(ADesc, SizeOf(ADesc), 0);
+  ADesc.Init;
 
   // Format
   if IsBitmap
@@ -2363,7 +2363,7 @@ begin
   if ADrawable = nil then
     RaiseGDBException('TGtkWidgetSet.RawImage_FromDrawable');
     
-  FillChar(ARawImage, SizeOf(ARawImage), 0);
+  ARawImage.Init;
 
   // get raw image description
   {$IFDEF VerboseRawImage}

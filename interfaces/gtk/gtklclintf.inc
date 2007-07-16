@@ -282,7 +282,7 @@ begin
 
 
     // create mask
-    if RawImage_IsMasked(ARawImage, False)
+    if ARawImage.IsMasked(False)
     then begin
       {$IFDEF VerboseRawImage}
       DebugLn('TGtkWidgetSet.CreateBitmapFromRawImage creating mask .. ');
@@ -430,7 +430,7 @@ begin
     then DebugLn('WARNING: [TGtkWidgetSet.RawImage_FromBitmap] unable to GetRawImageFromGdkWindow Image');
 
   except
-    RawImage_FreeData(ARawImage);
+    ARawImage.FreeData;
   end;
 end;
 

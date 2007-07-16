@@ -1142,10 +1142,10 @@ var
         begin
           if NewCount <= 0 then Break;
 
-          ImgRect:=Bounds(Col*Width,Row*Height,Width,Height);
-          RawImage_ExtractRect(RawImage, ImgRect, SubRawImage);
+          ImgRect := Bounds(Col*Width,Row*Height,Width,Height);
+          RawImage.ExtractRect(ImgRect, SubRawImage);
           Res := RawImage_CreateBitmaps(SubRawImage, ImgHandle, MaskHandle);
-          RawImage_FreeData(SubRawImage);
+          SubRawImage.FreeData;
           if not Res
           then raise EInvalidGraphicOperation.Create('TCustomImageList.CreateImagesFromRawImage Create bitmaps');
           

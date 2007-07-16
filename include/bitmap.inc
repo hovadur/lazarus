@@ -224,7 +224,7 @@ begin
     ImgHandle:=0;
     ImgMaskHandle:=0;
   finally
-    RawImage_FreeData(RawImage);
+    RawImage.FreeData;
     if ImgHandle<>0 then DeleteObject(ImgHandle);
     if ImgMaskHandle<>0 then DeleteObject(ImgMaskHandle);
   end;
@@ -929,7 +929,7 @@ begin
       // The LCL TBitmap is able to load .xpm and .bmp images. .xpm supports
       // transparency. So, if the images has transparency use .xpm.
       IntfImg.GetRawImage(RawImage);
-      if RawImage_IsMasked(RawImage, true)
+      if RawImage.IsMasked(true)
       then WriterClass:=TLazWriterXPM
       else WriterClass:=TFPWriterBMP;
     end;

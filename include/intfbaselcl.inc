@@ -158,47 +158,27 @@ end;
 
 function TWidgetSet.RawImage_CreateBitmaps(const ARawImage: TRawImage; out ABitmap, AMask: HBitmap; ASkipMask: Boolean = False): Boolean;
 begin
-  {$ifdef OldRawImageProcs}
-  Result := CreateBitmapFromRawImage(ARawImage, ABitmap, AMask, False);
-  {$else}
   Result := False;
-  {$endif}
 end;
 
 function TWidgetSet.RawImage_DescriptionFromBitmap(ABitmap: HBITMAP; out ADesc: TRawImageDescription): Boolean;
 begin
-  {$ifdef OldRawImageProcs}
-  Result := GetBitmapRawImageDescription(ABitmap, @ADesc);
-  {$else}
   Result := False;
-  {$endif}
 end;
 
 function TWidgetSet.RawImage_DescriptionFromDevice(ADC: HDC; out ADesc: TRawImageDescription): Boolean;
 begin
-  {$ifdef OldRawImageProcs}
-  Result := GetDeviceRawImageDescription(ADC, @ADesc);
-  {$else}
   Result := False;
-  {$endif}
 end;
 
 function TWidgetSet.RawImage_FromBitmap(out ARawImage: TRawImage; ABitmap, AMask: HBITMAP; const ARect: TRect): Boolean;
 begin
-  {$ifdef OldRawImageProcs}
-  Result := GetRawImageFromBitmap(ABitmap, AMask, ARect, ARawImage);
-  {$else}
   Result := False;
-  {$endif}
 end;
 
 function TWidgetSet.RawImage_FromDevice(out ARawImage: TRawImage; ADC: HDC; const ARect: TRect): Boolean;
 begin
-  {$ifdef OldRawImageProcs}
-  Result := GetRawImageFromDevice(ADC, ARect, ARawImage);
-  {$else}
   Result := False;
-  {$endif}
 end;
 
 function TWidgetSet.TextUTF8Out(DC: HDC; X, Y: Integer; Str: PChar; Count: Longint): Boolean;

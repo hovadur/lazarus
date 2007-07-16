@@ -113,8 +113,8 @@ type
   TLazIntfImage = class(TFPCustomImage)
   private
     FRawImage: TRawImage;
-    FLineStarts: PRawImagePosition;
-    FMaskLineStarts: PRawImagePosition;
+    FLineStarts: PRawImageLineStarts;
+    FMaskLineStarts: PRawImageLineStarts;
     FMaskSet: Boolean; // Set when atleast one maskpixel is set
     FUpdateCount: integer;
     fCreateAllDataNeeded: boolean;
@@ -576,7 +576,7 @@ end;
 
 function GetDescriptionFromDevice(ADC: HDC; AWidth, AHeight: integer): TRawImageDescription;
 begin
-  FillChar(Result, SizeOf(Result),0);
+  Result.Init;
   if not RawImage_DescriptionFromDevice(ADC, Result) then Exit;
   if AWidth <> -1 then Result.Width := AWidth;
   if AHeight <> -1 then Result.Height := AHeight;
@@ -584,7 +584,7 @@ end;
 
 function GetDescriptionFromBitmap(ABitmap: HBitmap; AWidth: Integer = -1; AHeight: integer = -1): TRawImageDescription;
 begin
-  FillChar(Result, SizeOf(Result),0);
+  Result.Init;
   if not RawImage_DescriptionFromBitmap(ABitmap, Result) then Exit;
   if AWidth <> -1 then Result.Width := AWidth;
   if AHeight <> -1 then Result.Height := AHeight;
@@ -1433,47 +1433,13 @@ end;
 
 procedure TLazIntfImage.GetColor_Generic(x, y: integer; out Value: TFPColor);
 var
-  Desc: TRawImageDescription absolute FRawImage.Description;
   Position: TRawImagePosition;
 begin
   GetXYDataPostion(x,y,Position);
 
-  if Desc.PaletteColorCount = 0
+  if FRawImage.Description.PaletteColorCount = 0
   then begin
-    case Desc.Format of
-      ricfRGBA: begin
-        RawImage_ReadBits(FRawimage.Data, Position, Desc.BitsPerPixel,
-                     Desc.RedPrec, Desc.RedShift, Desc.BitOrder, Value.Red);
-        RawImage_ReadBits(FRawimage.Data, Position, Desc.BitsPerPixel,
-                     Desc.GreenPrec, Desc.GreenShift, Desc.BitOrder,Value.Green);
-        RawImage_ReadBits(FRawimage.Data, Position, Desc.BitsPerPixel,
-                     Desc.BluePrec, Desc.BlueShift, Desc.BitOrder,Value.Blue);
-
-        if Desc.AlphaPrec > 0
-        then begin
-          // has alpha
-          RawImage_ReadBits(FRawimage.Data, Position, Desc.BitsPerPixel,
-                     Desc.AlphaPrec, Desc.AlphaShift, Desc.BitOrder,Value.Alpha);
-        end
-        else begin
-          // no alpha -> set opaque
-          Value.Alpha:=high(Value.Alpha);
-        end;
-      end;
-
-      ricfGray: begin
-        RawImage_ReadBits(FRawimage.Data, Position, Desc.BitsPerPixel,
-                     Desc.RedPrec, Desc.RedShift, Desc.BitOrder,Value.Red);
-        Value.Green:=Value.Red;
-        Value.Blue:=Value.Red;
-      end;
-
-    else
-      Value.Red:=0;
-      Value.Green:=0;
-      Value.Blue:=0;
-      Value.Alpha:=0;
-    end;
+    FRawimage.ReadChannels(Position, Value.Red, Value.Green, Value.Blue, Value.Alpha);
   end
   else begin
     // ToDo: read index, then palette
@@ -1486,59 +1452,29 @@ end;
 
 procedure TLazIntfImage.GetMask_Generic(x, y: integer; out AValue: Boolean);
 var
-  Desc: TRawImageDescription absolute FRawImage.Description;
   Position: TRawImagePosition;
-  W: Word;
 begin
-  if Desc.MaskBitsPerPixel = 0
+  if FRawImage.Description.MaskBitsPerPixel = 0
   then begin
     Avalue := False;
   end
   else begin
     GetXYMaskPostion(x,y,Position);
-    RawImage_ReadBits(FRawimage.Mask, Position, Desc.MaskBitsPerPixel, 1,
-               Desc.MaskShift, Desc.MaskBitOrder, W);
-    AValue := W <> 0;
+    FRawimage.ReadMask(Position, AValue);
   end;
 end;
 
 procedure TLazIntfImage.SetColor_Generic(x, y: integer; const Value: TFPColor);
 var
-  Desc: TRawImageDescription absolute FRawImage.Description;
   Position: TRawImagePosition;
 begin
   GetXYDataPostion(x,y,Position);
 
-  if Desc.PaletteColorCount = 0
+  if FRawImage.Description.PaletteColorCount = 0
   then begin
-    // No Palette
-    case Desc.Format of
-      ricfRGBA: begin
-        RawImage_WriteBits(FRawImage.Data, Position, Desc.BitsPerPixel,
-                      Desc.RedPrec, Desc.RedShift, Desc.BitOrder,Value.Red);
-        RawImage_WriteBits(FRawImage.Data, Position, Desc.BitsPerPixel,
-                      Desc.GreenPrec, Desc.GreenShift, Desc.BitOrder,Value.Green);
-        RawImage_WriteBits(FRawImage.Data, Position, Desc.BitsPerPixel,
-                      Desc.BluePrec, Desc.BlueShift, Desc.BitOrder,Value.Blue);
-        if Desc.AlphaPrec > 0
-        then begin
-          // alpha included
-          RawImage_WriteBits(FRawImage.Data, Position, Desc.BitsPerPixel,
-                      Desc.AlphaPrec, Desc.AlphaShift, Desc.BitOrder, Value.Alpha)
-        end
-        else begin
-          // no alpha
-        end;
-      end;
-
-      ricfGray: begin
-        RawImage_WriteBits(FRawImage.Data, Position,Desc.BitsPerPixel,
-                      Desc.RedPrec,Desc.RedShift,Desc.BitOrder,Value.Red);
-      end;
-
-    else
-    end;
-  end else begin
+    FRawImage.WriteChannels(Position, Value.Red, Value.Green, Value.Blue, Value.Alpha);
+  end
+  else begin
     // ToDo: Palette
   end;
 end;
@@ -1551,8 +1487,7 @@ begin
   if Desc.MaskBitsPerPixel = 0 then Exit;
   
   GetXYMaskPostion(x,y,Position);
-  RawImage_WriteBits(FRawImage.Mask, Position, Desc.MaskBitsPerPixel, 1,
-             Desc.MaskShift, Desc.MaskBitOrder, Ord(AValue) shl 15);
+  FRawImage.WriteMask(Position, AValue);
 end;
 
 
@@ -1598,7 +1533,7 @@ procedure TLazIntfImage.GetColor_BPP32_A8B8G8R8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Ah := B0;
     VBytes.Al := B0;
@@ -1615,7 +1550,7 @@ procedure TLazIntfImage.GetColor_BPP32_A8B8R8G8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Ah := B0;
     VBytes.Al := B0;
@@ -1632,7 +1567,7 @@ procedure TLazIntfImage.GetColor_BPP32_A8G8B8R8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Ah := B0;
     VBytes.Al := B0;
@@ -1649,7 +1584,7 @@ procedure TLazIntfImage.GetColor_BPP32_A8G8R8B8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Ah := B0;
     VBytes.Al := B0;
@@ -1666,7 +1601,7 @@ procedure TLazIntfImage.GetColor_BPP32_A8R8B8G8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Ah := B0;
     VBytes.Al := B0;
@@ -1686,7 +1621,7 @@ procedure TLazIntfImage.GetColor_BPP32_A8R8G8B8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Ah := B0;
     VBytes.Al := B0;
@@ -1706,7 +1641,7 @@ procedure TLazIntfImage.GetColor_BPP32_B8G8R8A8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Bh := B0;
     VBytes.Bl := B0;
@@ -1726,7 +1661,7 @@ procedure TLazIntfImage.GetColor_BPP32_B8R8G8A8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Bh := B0;
     VBytes.Bl := B0;
@@ -1746,7 +1681,7 @@ procedure TLazIntfImage.GetColor_BPP32_G8B8R8A8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Gh := B0;
     VBytes.Gl := B0;
@@ -1766,7 +1701,7 @@ procedure TLazIntfImage.GetColor_BPP32_G8R8B8A8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Gh := B0;
     VBytes.Gl := B0;
@@ -1786,7 +1721,7 @@ procedure TLazIntfImage.GetColor_BPP32_R8B8G8A8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Rh := B0;
     VBytes.Rl := B0;
@@ -1806,7 +1741,7 @@ procedure TLazIntfImage.GetColor_BPP32_R8G8B8A8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Rh := B0;
     VBytes.Rl := B0;
@@ -1826,7 +1761,7 @@ procedure TLazIntfImage.GetColor_BPP32_X8B8G8R8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Bh := B1;
     VBytes.Bl := B1;
@@ -1846,7 +1781,7 @@ procedure TLazIntfImage.GetColor_BPP32_X8B8R8G8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Bh := B1;
     VBytes.Bl := B1;
@@ -1866,7 +1801,7 @@ procedure TLazIntfImage.GetColor_BPP32_X8G8B8R8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Gh := B1;
     VBytes.Gl := B1;
@@ -1886,7 +1821,7 @@ procedure TLazIntfImage.GetColor_BPP32_X8G8R8B8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Gh := B1;
     VBytes.Gl := B1;
@@ -1906,7 +1841,7 @@ procedure TLazIntfImage.GetColor_BPP32_X8R8B8G8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Rh := B1;
     VBytes.Rl := B1;
@@ -1926,7 +1861,7 @@ procedure TLazIntfImage.GetColor_BPP32_X8R8G8B8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Rh := B1;
     VBytes.Rl := B1;
@@ -1946,7 +1881,7 @@ procedure TLazIntfImage.GetColor_BPP32_B8G8R8X8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Bh := B0;
     VBytes.Bl := B0;
@@ -1966,7 +1901,7 @@ procedure TLazIntfImage.GetColor_BPP32_B8R8G8X8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Bh := B0;
     VBytes.Bl := B0;
@@ -1986,7 +1921,7 @@ procedure TLazIntfImage.GetColor_BPP32_G8B8R8X8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Gh := B0;
     VBytes.Gl := B0;
@@ -2006,7 +1941,7 @@ procedure TLazIntfImage.GetColor_BPP32_G8R8B8X8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Gh := B0;
     VBytes.Gl := B0;
@@ -2026,7 +1961,7 @@ procedure TLazIntfImage.GetColor_BPP32_R8B8G8X8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Rh := B0;
     VBytes.Rl := B0;
@@ -2046,7 +1981,7 @@ procedure TLazIntfImage.GetColor_BPP32_R8G8B8X8_BIO_TTB(x, y: integer; out Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     VBytes.Rh := B0;
     VBytes.Rl := B0;
@@ -2066,7 +2001,7 @@ procedure TLazIntfImage.GetColor_BPP24_B8G8R8_BIO_TTB(x, y: integer; out Value: 
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x * 3))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x * 3))^ do
   begin
     VBytes.Bh := B0;
     VBytes.Bl := B0;
@@ -2086,7 +2021,7 @@ procedure TLazIntfImage.GetColor_BPP24_B8R8G8_BIO_TTB(x, y: integer; out Value: 
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x * 3))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x * 3))^ do
   begin
     VBytes.Bh := B0;
     VBytes.Bl := B0;
@@ -2106,7 +2041,7 @@ procedure TLazIntfImage.GetColor_BPP24_G8B8R8_BIO_TTB(x, y: integer; out Value: 
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x * 3))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x * 3))^ do
   begin
     VBytes.Gh := B0;
     VBytes.Gl := B0;
@@ -2126,7 +2061,7 @@ procedure TLazIntfImage.GetColor_BPP24_G8R8B8_BIO_TTB(x, y: integer; out Value: 
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x * 3))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x * 3))^ do
   begin
     VBytes.Gh := B0;
     VBytes.Gl := B0;
@@ -2146,7 +2081,7 @@ procedure TLazIntfImage.GetColor_BPP24_R8B8G8_BIO_TTB(x, y: integer; out Value: 
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x * 3))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x * 3))^ do
   begin
     VBytes.Rh := B0;
     VBytes.Rl := B0;
@@ -2166,7 +2101,7 @@ procedure TLazIntfImage.GetColor_BPP24_R8G8B8_BIO_TTB(x, y: integer; out Value: 
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x * 3))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x * 3))^ do
   begin
     VBytes.Rh := B0;
     VBytes.Rl := B0;
@@ -2235,7 +2170,7 @@ procedure TLazIntfImage.SetColor_BPP32_A8R8G8B8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Ah;
     B1 := VBytes.Rh;
@@ -2251,7 +2186,7 @@ procedure TLazIntfImage.SetColor_BPP32_A8B8G8R8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Ah;
     B1 := VBytes.Bh;
@@ -2267,7 +2202,7 @@ procedure TLazIntfImage.SetColor_BPP32_A8B8R8G8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Ah;
     B1 := VBytes.Bh;
@@ -2283,7 +2218,7 @@ procedure TLazIntfImage.SetColor_BPP32_A8G8B8R8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Ah;
     B1 := VBytes.Gh;
@@ -2299,7 +2234,7 @@ procedure TLazIntfImage.SetColor_BPP32_A8G8R8B8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Ah;
     B1 := VBytes.Gh;
@@ -2315,7 +2250,7 @@ procedure TLazIntfImage.SetColor_BPP32_A8R8B8G8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Ah;
     B1 := VBytes.Rh;
@@ -2331,7 +2266,7 @@ procedure TLazIntfImage.SetColor_BPP32_B8G8R8A8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Bh;
     B1 := VBytes.Gh;
@@ -2347,7 +2282,7 @@ procedure TLazIntfImage.SetColor_BPP32_B8R8G8A8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Bh;
     B1 := VBytes.Rh;
@@ -2363,7 +2298,7 @@ procedure TLazIntfImage.SetColor_BPP32_G8B8R8A8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Gh;
     B1 := VBytes.Bh;
@@ -2379,7 +2314,7 @@ procedure TLazIntfImage.SetColor_BPP32_G8R8B8A8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Gh;
     B1 := VBytes.Rh;
@@ -2395,7 +2330,7 @@ procedure TLazIntfImage.SetColor_BPP32_R8B8G8A8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Rh;
     B1 := VBytes.Bh;
@@ -2411,7 +2346,7 @@ procedure TLazIntfImage.SetColor_BPP32_R8G8B8A8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Rh;
     B1 := VBytes.Gh;
@@ -2427,7 +2362,7 @@ procedure TLazIntfImage.SetColor_BPP32_X8R8G8B8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B1 := VBytes.Rh;
     B2 := VBytes.Gh;
@@ -2442,7 +2377,7 @@ procedure TLazIntfImage.SetColor_BPP32_X8B8G8R8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B1 := VBytes.Bh;
     B2 := VBytes.Gh;
@@ -2457,7 +2392,7 @@ procedure TLazIntfImage.SetColor_BPP32_X8B8R8G8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B1 := VBytes.Bh;
     B2 := VBytes.Rh;
@@ -2472,7 +2407,7 @@ procedure TLazIntfImage.SetColor_BPP32_X8G8B8R8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B1 := VBytes.Gh;
     B2 := VBytes.Bh;
@@ -2487,7 +2422,7 @@ procedure TLazIntfImage.SetColor_BPP32_X8G8R8B8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B1 := VBytes.Gh;
     B2 := VBytes.Rh;
@@ -2502,7 +2437,7 @@ procedure TLazIntfImage.SetColor_BPP32_X8R8B8G8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B1 := VBytes.Rh;
     B2 := VBytes.Bh;
@@ -2517,7 +2452,7 @@ procedure TLazIntfImage.SetColor_BPP32_B8G8R8X8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Bh;
     B1 := VBytes.Gh;
@@ -2532,7 +2467,7 @@ procedure TLazIntfImage.SetColor_BPP32_B8R8G8X8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Bh;
     B1 := VBytes.Rh;
@@ -2547,7 +2482,7 @@ procedure TLazIntfImage.SetColor_BPP32_G8B8R8X8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Gh;
     B1 := VBytes.Bh;
@@ -2562,7 +2497,7 @@ procedure TLazIntfImage.SetColor_BPP32_G8R8B8X8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Gh;
     B1 := VBytes.Rh;
@@ -2577,7 +2512,7 @@ procedure TLazIntfImage.SetColor_BPP32_R8B8G8X8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Rh;
     B1 := VBytes.Bh;
@@ -2592,7 +2527,7 @@ procedure TLazIntfImage.SetColor_BPP32_R8G8B8X8_BIO_TTB(x, y: integer; const Val
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x shl 2))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x shl 2))^ do
   begin
     B0 := VBytes.Rh;
     B1 := VBytes.Gh;
@@ -2607,7 +2542,7 @@ procedure TLazIntfImage.SetColor_BPP24_B8G8R8_BIO_TTB(x, y: integer; const Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x * 3))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x * 3))^ do
   begin
     B0 := VBytes.Bh;
     B1 := VBytes.Gh;
@@ -2622,7 +2557,7 @@ procedure TLazIntfImage.SetColor_BPP24_B8R8G8_BIO_TTB(x, y: integer; const Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x * 3))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x * 3))^ do
   begin
     B0 := VBytes.Bh;
     B1 := VBytes.Rh;
@@ -2637,7 +2572,7 @@ procedure TLazIntfImage.SetColor_BPP24_G8B8R8_BIO_TTB(x, y: integer; const Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x * 3))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x * 3))^ do
   begin
     B0 := VBytes.Gh;
     B1 := VBytes.Bh;
@@ -2652,7 +2587,7 @@ procedure TLazIntfImage.SetColor_BPP24_G8R8B8_BIO_TTB(x, y: integer; const Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x * 3))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x * 3))^ do
   begin
     B0 := VBytes.Gh;
     B1 := VBytes.Rh;
@@ -2667,7 +2602,7 @@ procedure TLazIntfImage.SetColor_BPP24_R8B8G8_BIO_TTB(x, y: integer; const Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x * 3))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x * 3))^ do
   begin
     B0 := VBytes.Rh;
     B1 := VBytes.Bh;
@@ -2682,7 +2617,7 @@ procedure TLazIntfImage.SetColor_BPP24_R8G8B8_BIO_TTB(x, y: integer; const Value
 var
   VBytes: TFPColorBytes absolute Value;
 begin
-  with PFourBytes(FRawImage.Data+FLineStarts[y].Byte+(x * 3))^ do
+  with PFourBytes(FRawImage.Data+FLineStarts^.Positions[y].Byte+(x * 3))^ do
   begin
     B0 := VBytes.Rh;
     B1 := VBytes.Gh;
@@ -2751,12 +2686,14 @@ begin
   if FDataOwner then
     ReallocMem(FRawImage.Data, 0);
   FRawImage.DataSize := 0;
-  ReallocMem(FLineStarts, 0);
+  if FLineStarts <> nil then Dispose(FLineStarts, Done);
+  FLineStarts := nil;
   
   if FDataOwner then
     ReallocMem(FRawImage.Mask, 0);
   FRawImage.MaskSize := 0;
-  ReallocMem(FMaskLineStarts, 0);
+  if FMaskLineStarts <> nil then Dispose(FMaskLineStarts, Done);
+  FMaskLineStarts := nil;
   FMaskSet := False;
 end;
 
@@ -2773,14 +2710,15 @@ begin
 
   FreeData;
 
-  RawImage_CreateLineStarts(Width, Height, Desc.BitsPerPixel, Desc.LineEnd, FLineStarts);
-  RawImage_CreateLineStarts(Width, Height, Desc.MaskBitsPerPixel, Desc.MaskLineEnd, FMaskLineStarts);
-  RawImage_CreateData(FRawImage, False);
+  New(FLineStarts, Init(Width, Height, Desc.BitsPerPixel, Desc.LineEnd, Desc.LineOrder));
+  New(FMaskLineStarts, Init(Width, Height, Desc.MaskBitsPerPixel, Desc.MaskLineEnd, Desc.LineOrder));
+
+  FRawImage.CreateData(False);
 end;
 
 function TLazIntfImage.HasTransparency: boolean;
 begin
-  Result := FMaskSet or RawImage_IsTransparent(FRawImage, True);
+  Result := FMaskSet or FRawImage.IsTransparent(True);
 end;
 
 function TLazIntfImage.HasMask: boolean;
@@ -2807,8 +2745,8 @@ begin
   FDataOwner := ADataOwner;
   FCreateAllDataNeeded := False;
   EndUpdate;
-  RawImage_CreateLineStarts(Width, Height, Desc.BitsPerPixel, Desc.LineEnd, FLineStarts);
-  RawImage_CreateLineStarts(Width, Height, Desc.MaskBitsPerPixel, Desc.MaskLineEnd, FMaskLineStarts);
+  New(FLineStarts, Init(Width, Height, Desc.BitsPerPixel, Desc.LineEnd, Desc.LineOrder));
+  New(FMaskLineStarts, Init(Width, Height, Desc.MaskBitsPerPixel, Desc.MaskLineEnd, Desc.LineOrder));
   ChooseGetSetColorFunctions;
 end;
 
@@ -2905,34 +2843,20 @@ begin
 end;
 
 procedure TLazIntfImage.GetXYDataPostion(x, y: integer; out Position: TRawImagePosition);
-var
-  BitOffset: cardinal;
 begin
-  if FRawimage.Description.LineOrder = riloBottomToTop
-  then y := Height - y;
-  Position := FLineStarts[y];
-  BitOffset := FRawimage.Description.BitsPerPixel*cardinal(x)+Position.Bit;
-  Position.Bit:=(BitOffset and 7);
-  Inc(Position.Byte,BitOffset shr 3);
+  Position := FLineStarts^.GetPosition(x, y);
 end;
 
 procedure TLazIntfImage.GetXYMaskPostion(x, y: integer; out Position: TRawImagePosition);
-var
-  BitOffset: cardinal;
 begin
-  if FRawimage.Description.LineOrder = riloBottomToTop
-  then y := Height - y;
-  Position := FMaskLineStarts[y];
-  BitOffset := FRawimage.Description.MaskBitsPerPixel*cardinal(x)+Position.Bit;
-  Position.Bit := BitOffset and 7;
-  Inc(Position.Byte, BitOffset shr 3);
+  Position := FMaskLineStarts^.GetPosition(x, y);
 end;
 
 function TLazIntfImage.GetDataLineStart(y: integer): Pointer;
 begin
   if FRawimage.Description.LineOrder = riloBottomToTop then
     y:=Height-y;
-  Result := FRawImage.Data+FLineStarts[y].Byte;
+  Result := FRawImage.Data+FLineStarts^.Positions[y].Byte;
 end;
 
 procedure TLazIntfImage.LoadFromDevice(DC: HDC);
@@ -2977,7 +2901,7 @@ procedure TLazIntfImage.SetRawImage(const ARawImage: TRawImage; ADataOwner: Bool
 var
   Desc: TRawImageDescription absolute FRawImage.Description;
 begin
-  if CompareMem(@FRawImage, @ARawImage, SizeOf(TRawImage)) then Exit;
+  if FRawImage.IsEqual(ARawImage) then Exit;
 
   BeginUpdate;
   try
@@ -2986,8 +2910,8 @@ begin
     FDataOwner := ADataOwner;
     SetSize(Desc.Width, Desc.Height);
     FCreateAllDataNeeded := False;
-    RawImage_CreateLineStarts(Width, Height, Desc.BitsPerPixel, Desc.LineEnd, FLineStarts);
-    RawImage_CreateLineStarts(Width, Height, Desc.MaskBitsPerPixel, Desc.MaskLineEnd, FMaskLineStarts);
+    New(FLineStarts, Init(Width, Height, Desc.BitsPerPixel, Desc.LineEnd, Desc.LineOrder));
+    New(FMaskLineStarts, Init(Width, Height, Desc.MaskBitsPerPixel, Desc.MaskLineEnd, Desc.LineOrder));
     ChooseGetSetColorFunctions;
   finally
     EndUpdate;

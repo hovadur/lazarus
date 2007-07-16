@@ -81,7 +81,9 @@ type
     riloBottomToTop  // The line 0 is the bottom line
     );
 
-  TRawImageDescription = record
+  { TRawImageDescription }
+
+  TRawImageDescription = object
     Format: TRawImageColorFormat;
     Width: cardinal;
     Height: cardinal;
@@ -117,12 +119,41 @@ type
     PaletteLineEnd: TRawImageLineEnd;
     PaletteBitOrder: TRawImageBitOrder;
     PaletteByteOrder: TRawImageByteOrder;
+    
+    constructor Init;
+    
+    procedure Init_BPP24_B8G8R8_BIO_TTB(AWidth, AHeight: integer);
+    procedure Init_BPP24_B8G8R8_M1_BIO_TTB(AWidth, AHeight: integer);
+    procedure Init_BPP32_B8G8R8_BIO_TTB(AWidth, AHeight: integer);
+    procedure Init_BPP32_B8G8R8_M1_BIO_TTB(AWidth, AHeight: integer);
+    procedure Init_BPP32_A8B8G8R8_BIO_TTB(AWidth, AHeight: integer);
+
+    function GetDescriptionFromMask: TRawImageDescription;
+    function GetDescriptionFromAlpha: TRawImageDescription;
+
+
+    function BytesPerLine: PtrUInt;
+    function BitsPerLine: PtrUInt;
+    function MaskBytesPerLine: PtrUInt;
+    function MaskBitsPerLine: PtrUInt;
+
+    function AsString: string;
   end;
   PRawImageDescription = ^TRawImageDescription;
   
   // Note: not all devices/images have all parts at any time. But if a part can
   // be applied to the device/image, the 'Description' describes its structure.
-  TRawImage = record
+
+
+  TRawImagePosition = record
+    Byte: PtrUInt;
+    Bit: cardinal;
+  end;
+  PRawImagePosition = ^TRawImagePosition;
+
+  { TRawImage }
+
+  TRawImage = object
     Description: TRawImageDescription;
     Data: PByte;
     DataSize: PtrUInt;
@@ -130,14 +161,44 @@ type
     MaskSize: PtrUInt;
     Palette: PByte;
     PaletteSize: PtrUInt;
+    
+    constructor Init;
+    procedure CreateData(AZeroMem: Boolean);
+
+    procedure FreeData;
+    procedure ReleaseData;
+    procedure ExtractRect(const ARect: TRect; out ADst: TRawImage);
+
+    function  ReadBits(const APosition: TRawImagePosition; APrec, AShift: Byte): Word;
+    procedure ReadChannels(const APosition: TRawImagePosition; out ARed, AGreen, ABlue, AAlpha: Word);
+    procedure ReadMask(const APosition: TRawImagePosition; out AMask: Boolean);
+    procedure WriteBits(const APosition: TRawImagePosition; APrec, AShift: Byte; ABits: Word);
+    procedure WriteChannels(const APosition: TRawImagePosition; ARed, AGreen, ABlue, AAlpha: Word);
+    procedure WriteMask(const APosition: TRawImagePosition; AMask: Boolean);
+
+    function  IsMasked(ATestPixels: Boolean): Boolean;
+    function  IsTransparent(ATestPixels: Boolean): Boolean;
+    function  IsEqual(AImage: TRawImage): Boolean;
   end;
   PRawImage = ^TRawImage;
 
-  TRawImagePosition = record
-    Byte: PtrUInt;
-    Bit: cardinal;
+  { TRawImageLineStarts }
+
+  TRawImageLineStarts = object
+  private
+    FWidth: Cardinal;
+    FHeight: Cardinal;
+    FBitsPerPixel: Byte;
+    FLineEnd: TRawImageLineEnd;
+    FLineOrder: TRawImageLineOrder;
+  public
+    Positions: array of TRawImagePosition;
+
+    constructor Init(AWidth, AHeight: cardinal; ABitsPerPixel: Byte; ALineEnd: TRawImageLineEnd; ALineOrder: TRawImageLineOrder);
+    destructor Done;
+    function GetPosition(x, y: cardinal): TRawImagePosition;
   end;
-  PRawImagePosition = ^TRawImagePosition;
+  PRawImageLineStarts = ^TRawImageLineStarts;
 
 const
   RawImageColorFormatNames: array[TRawImageColorFormat] of string = (
@@ -172,45 +233,10 @@ const
   DefaultByteOrder = {$IFDEF Endian_Little}riboLSBFirst{$ELSE}riboMSBFirst{$ENDIF};
 
 
-function  RawImage_IsMasked(const ARawImage: TRawImage; ATestPixels: Boolean): Boolean;
-function  RawImage_IsTransparent(const ARawImage: TRawImage; ATestPixels: Boolean): Boolean;
-
-procedure RawImage_CreateData(var ARawImage: TRawImage; AZeroMem: Boolean);
-procedure RawImage_CreateLineStarts(AWidth, AHeight: cardinal; ABitsPerPixel: Byte;
-                                   ALineEnd: TRawImageLineEnd;
-                                   var ALineStarts: PRawImagePosition);
-
-procedure RawImage_FreeData(var ARawImage: TRawImage);
-procedure RawImage_ReleaseData(var ARawImage: TRawImage);
-procedure RawImage_ExtractRect(const ASrc: TRawImage; const ARect: TRect; out ADst: TRawImage);
-
-
-function  RawImageDescription_AsString(const ADesc: TRawImageDescription): string;
-
-procedure RawImage_GetXYPosition(ALineOrder: TRawImageLineOrder; ABitsPerPixel: Byte;
-                                 AHeight: Cardinal; ALineStarts: PRawImagePosition;
-                                 x, y: cardinal; var APosition: TRawImagePosition);
-
-procedure RawImage_ReadBits(AData: PByte; const APosition: TRawImagePosition;
-                       ABitsPerPixel, APrec, AShift: Byte;
-                       ABitOrder: TRawImageBitOrder; out ABits: Word);
-procedure RawImage_WriteBits(AData: PByte; const APosition: TRawImagePosition;
-                       ABitsPerPixel, APrec, AShift: Byte;
-                       ABitOrder: TRawImageBitOrder; ABits: Word);
-
 function GetBytesPerLine(AWidth: Cardinal; ABitsPerPixel: Byte; ALineEnd: TRawImageLineEnd): PtrUInt;
 function GetBitsPerLine(AWidth: Cardinal; ABitsPerPixel: Byte; ALineEnd: TRawImageLineEnd): PtrUInt;
 
-// some default rawimage descriptions
-
-function GetDescriptionFromMask(const ASrc: TRawImageDescription): TRawImageDescription;
-function GetDescriptionFromAlpha(const ASrc: TRawImageDescription): TRawImageDescription;
-function GetDescription_BPP24_B8G8R8_BIO_TTB(AWidth, AHeight: integer): TRawImageDescription;
-function GetDescription_BPP24_B8G8R8_M1_BIO_TTB(AWidth, AHeight: integer): TRawImageDescription;
-function GetDescription_BPP32_B8G8R8_BIO_TTB(AWidth, AHeight: integer): TRawImageDescription;
-function GetDescription_BPP32_B8G8R8_M1_BIO_TTB(AWidth, AHeight: integer): TRawImageDescription;
-function GetDescription_BPP32_A8B8G8R8_BIO_TTB(AWidth, AHeight: integer): TRawImageDescription;
-
+{.$define OldRawImageProcs}
 
 // TODO: remove
 {$ifdef OldRawImageProcs}
@@ -286,14 +312,396 @@ begin
   end;
 end;
 
-{$ifdef OldRawImageProcs}
-function RawImageMaskIsEmpty(RawImage: PRawImage; TestPixels: boolean): boolean;
-begin
-  Result := not RawImage_IsMasked(RawImage^, TestPixels);
-end;
-{$endif}
+{ TRawImageDescription }
 
-function RawImage_IsMasked(const ARawImage: TRawImage; ATestPixels: Boolean): Boolean;
+constructor TRawImageDescription.Init;
+begin
+  FillChar(Self, SizeOf(Self), 0);
+end;
+
+procedure TRawImageDescription.Init_BPP24_B8G8R8_BIO_TTB(AWidth, AHeight: integer);
+{ pf24bit:
+
+ Format=ricfRGBA HasPalette=false Depth=24 PaletteColorCount=0
+ BitOrder=riboBitsInOrder ByteOrder=DefaultByteOrder
+ LineOrder=riloTopToBottom
+ BitsPerPixel=24 LineEnd=rileDWordBoundary
+ RedPrec=8 RedShift=16 GreenPrec=8 GreenShift=8 BluePrec=8 BlueShift=0
+}
+begin
+  // setup an artificial ScanLineImage with format RGB 24 bit, 24bit depth format
+  FillChar(Self, SizeOf(Self), 0);
+
+  Format := ricfRGBA;
+  Depth := 24; // used bits per pixel
+  Width := AWidth;
+  Height := AHeight;
+  BitOrder := riboBitsInOrder;
+  ByteOrder := DefaultByteOrder;
+  LineOrder := riloTopToBottom;
+  BitsPerPixel := 24; // bits per pixel. can be greater than Depth.
+  LineEnd := rileDWordBoundary;
+  RedPrec := 8; // red precision. bits for red
+  RedShift := 16;
+  GreenPrec := 8;
+  GreenShift := 8; // bitshift. Direction: from least to most significant
+  BluePrec := 8;
+//  BlueShift:=0;
+//  AlphaPrec:=0;
+//  MaskBitsPerPixel:=0;
+end;
+
+procedure TRawImageDescription.Init_BPP24_B8G8R8_M1_BIO_TTB(AWidth, AHeight: integer);
+{ pf24bit:
+
+ Format=ricfRGBA HasPalette=false Depth=24 PaletteColorCount=0
+ BitOrder=riboBitsInOrder ByteOrder=DefaultByteOrder
+ LineOrder=riloTopToBottom
+ BitsPerPixel=24 LineEnd=rileDWordBoundary
+ RedPrec=8 RedShift=16 GreenPrec=8 GreenShift=8 BluePrec=8 BlueShift=0
+ Masked
+}
+begin
+  // setup an artificial ScanLineImage with format RGB 24 bit, 24bit depth format
+  FillChar(Self, SizeOf(Self), 0);
+
+  Format := ricfRGBA;
+  Depth := 24; // used bits per pixel
+  Width := AWidth;
+  Height := AHeight;
+  BitOrder := riboBitsInOrder;
+  ByteOrder := DefaultByteOrder;
+  LineOrder := riloTopToBottom;
+  BitsPerPixel := 24; // bits per pixel. can be greater than Depth.
+  LineEnd := rileDWordBoundary;
+  RedPrec := 8; // red precision. bits for red
+  RedShift := 16;
+  GreenPrec := 8;
+  GreenShift := 8; // bitshift. Direction: from least to most significant
+  BluePrec := 8;
+//  BlueShift := 0;
+//  AlphaPrec := 0;
+  MaskBitsPerPixel := 1;
+  MaskBitOrder := riboBitsInOrder;
+//  MaskShift := 0;        // the shift (=position) of the mask bit
+  MaskLineEnd := rileDWordBoundary;
+end;
+
+procedure TRawImageDescription.Init_BPP32_B8G8R8_BIO_TTB(AWidth, AHeight: integer);
+{ pf32bit:
+
+ Format=ricfRGBA HasPalette=false Depth=24 PaletteColorCount=0
+ BitOrder=riboBitsInOrder ByteOrder=DefaultByteOrder
+ LineOrder=riloTopToBottom
+ BitsPerPixel=32 LineEnd=rileDWordBoundary
+ RedPrec=8 RedShift=16 GreenPrec=8 GreenShift=8 BluePrec=8 BlueShift=0
+ No alpha
+ No mask
+}
+begin
+  // setup an artificial ScanLineImage with format RGB 24 bit, 32bit depth format
+  FillChar(Self, SizeOf(Self), 0);
+
+  Format := ricfRGBA;
+  Depth := 24; // used bits per pixel
+  Width := AWidth;
+  Height := AHeight;
+  BitOrder := riboBitsInOrder;
+  ByteOrder := DefaultByteOrder;
+  LineOrder := riloTopToBottom;
+  BitsPerPixel := 32; // bits per pixel. can be greater than Depth.
+  LineEnd := rileDWordBoundary;
+  RedPrec := 8; // red precision. bits for red
+  RedShift := 16;
+  GreenPrec := 8;
+  GreenShift := 8; // bitshift. Direction: from least to most signifikant
+  BluePrec := 8;
+//  BlueShift := 0;
+//  AlphaPrec := 0;
+//  MaskBitsPerPixel:=0;
+end;
+
+procedure TRawImageDescription.Init_BPP32_B8G8R8_M1_BIO_TTB(AWidth, AHeight: integer);
+{ pf32bit:
+
+ Format=ricfRGBA HasPalette=false Depth=24 PaletteColorCount=0
+ BitOrder=riboBitsInOrder ByteOrder=DefaultByteOrder
+ LineOrder=riloTopToBottom
+ BitsPerPixel=32 LineEnd=rileDWordBoundary
+ RedPrec=8 RedShift=16 GreenPrec=8 GreenShift=8 BluePrec=8 BlueShift=0
+ no alpha
+ with mask
+}
+begin
+  // setup an artificial ScanLineImage with format RGB 24 bit, 32bit depth format
+  FillChar(Self, SizeOf(Self), 0);
+
+  Format := ricfRGBA;
+  Depth := 24; // used bits per pixel
+  Width := AWidth;
+  Height := AHeight;
+  BitOrder := riboBitsInOrder;
+  ByteOrder := DefaultByteOrder;
+  LineOrder := riloTopToBottom;
+  BitsPerPixel := 32; // bits per pixel. can be greater than Depth.
+  LineEnd := rileDWordBoundary;
+  RedPrec := 8; // red precision. bits for red
+  RedShift := 16;
+  GreenPrec := 8;
+  GreenShift := 8; // bitshift. Direction: from least to most signifikant
+  BluePrec := 8;
+//  BlueShift := 0;
+//  AlphaPrec := 0;
+  MaskBitsPerPixel := 1;
+  MaskBitOrder := riboBitsInOrder;
+//  MaskShift := 0;        // the shift (=position) of the mask bit
+  MaskLineEnd := rileDWordBoundary;
+end;
+
+function TRawImageDescription.MaskBitsPerLine: PtrUInt;
+begin
+  Result := GetBitsPerLine(Width, MaskBitsPerPixel, MaskLineEnd);
+end;
+
+function TRawImageDescription.MaskBytesPerLine: PtrUInt;
+begin
+  Result := (GetBitsPerLine(Width, MaskBitsPerPixel, MaskLineEnd) + 7) shr 3;
+end;
+
+procedure TRawImageDescription.Init_BPP32_A8B8G8R8_BIO_TTB(AWidth, AHeight: integer);
+{ pf32bit:
+
+ Format=ricfRGBA HasPalette=false Depth=24 PaletteColorCount=0
+ BitOrder=riboBitsInOrder ByteOrder=DefaultByteOrder
+ LineOrder=riloTopToBottom
+ BitsPerPixel=32 LineEnd=rileDWordBoundary
+ RedPrec=8 RedShift=16 GreenPrec=8 GreenShift=8 BluePrec=8 BlueShift=0
+ alpha
+ no mask
+}
+begin
+  // setup an artificial ScanLineImage with format RGB 32 bit, 32bit depth format
+  FillChar(Self, SizeOf(Self), 0);
+
+  Format := ricfRGBA;
+  Depth := 32; // used bits per pixel
+  Width := AWidth;
+  Height := AHeight;
+  BitOrder := riboBitsInOrder;
+  ByteOrder := DefaultByteOrder;
+  LineOrder := riloTopToBottom;
+  BitsPerPixel := 32; // bits per pixel. can be greater than Depth.
+  LineEnd := rileDWordBoundary;
+  RedPrec := 8; // red precision. bits for red
+  RedShift := 16;
+  GreenPrec := 8;
+  GreenShift := 8; // bitshift. Direction: from least to most signifikant
+  BluePrec := 8;
+  BlueShift := 0;
+  AlphaPrec := 8;
+  AlphaShift := 24;
+//  MaskBitsPerPixel := 0;
+end;
+
+
+function TRawImageDescription.GetDescriptionFromMask: TRawImageDescription;
+begin
+  FillByte(Result, SizeOf(Result), 0);
+
+  Result.Format       := ricfGray;
+  Result.Width        := Width;
+  Result.Height       := Height;
+  Result.Depth        := 1; // per def
+  Result.BitOrder     := MaskBitOrder;
+  Result.ByteOrder    := DefaultByteOrder;
+  Result.LineOrder    := LineOrder;
+  Result.LineEnd      := MaskLineEnd;
+  Result.BitsPerPixel := MaskBitsPerPixel;
+  Result.RedPrec      := 1;
+  Result.RedShift     := MaskShift;
+end;
+
+function TRawImageDescription.BitsPerLine: PtrUInt;
+begin
+  Result := GetBitsPerLine(Width, BitsPerPixel, LineEnd);
+end;
+
+function TRawImageDescription.BytesPerLine: PtrUInt;
+begin
+  Result := (GetBitsPerLine(Width, BitsPerPixel, LineEnd) + 7) shr 3;
+end;
+
+function TRawImageDescription.GetDescriptionFromAlpha: TRawImageDescription;
+begin
+  FillByte(Result, SizeOf(Result), 0);
+
+  Result.Format       := ricfGray;
+  Result.Width        := Width;
+  Result.Height       := Height;
+  Result.Depth        := AlphaPrec;
+  Result.BitOrder     := BitOrder;
+  Result.ByteOrder    := ByteOrder;
+  Result.LineOrder    := LineOrder;
+  Result.LineEnd      := LineEnd;
+  Result.BitsPerPixel := BitsPerPixel;
+  Result.RedPrec      := AlphaPrec;
+  Result.RedShift     := AlphaShift;
+end;
+
+function TRawImageDescription.AsString: string;
+
+  function BoolStr(b: boolean): string;
+  begin
+    if b then
+      Result:='true'
+    else
+      Result:='false';
+  end;
+
+begin
+  Result:=
+     ' Format='+RawImageColorFormatNames[Format]
+    +' HasPalette->'+BoolStr(PaletteColorCount <> 0)
+    +' HasMask->'+BoolStr(PaletteColorCount <> 0)
+    +' Depth='+IntToStr(Depth)
+    +' Width='+IntToStr(Width)
+    +' Height='+IntToStr(Height)
+    +' BitOrder='+RawImageBitOrderNames[BitOrder]
+    +' ByteOrder='+RawImageByteOrderNames[ByteOrder]
+    +' LineOrder='+RawImageLineOrderNames[LineOrder]
+    +' LineEnd='+RawImageLineEndNames[LineEnd]
+    +' BitsPerPixel='+IntToStr(BitsPerPixel)
+    +' BytesPerLine->'+IntToStr(GetBytesPerLine(Width,BitsPerPixel,LineEnd))
+    +' RedPrec='+IntToStr(RedPrec)
+    +' RedShift='+IntToStr(RedShift)
+    +' GreenPrec='+IntToStr(GreenPrec)
+    +' GreenShift='+IntToStr(GreenShift)
+    +' BluePrec='+IntToStr(BluePrec)
+    +' BlueShift='+IntToStr(BlueShift)
+    +' AlphaPrec='+IntToStr(AlphaPrec)
+    +' AlphaShift='+IntToStr(AlphaShift)
+    +' ~~~mask~~~'
+    +' MaskBitsPerPixel='+IntToStr(MaskBitsPerPixel)
+    +' MaskShift='+IntToStr(MaskShift)
+    +' MaskLineEnd='+RawImageLineEndNames[MaskLineEnd]
+    +' MaskBitOrder='+RawImageBitOrderNames[MaskBitOrder]
+    +' MaskBytesPerLine->'+IntToStr(GetBytesPerLine(Width,MaskBitsPerPixel,MaskLineEnd))
+    +' ~~~palette~~~'
+    +' PaletteColorCount='+IntToStr(PaletteColorCount)
+    +' PaletteBitsPerIndex='+IntToStr(PaletteBitsPerIndex)
+    +' PaletteShift='+IntToStr(PaletteShift)
+    +' PaletteLineEnd='+RawImageLineEndNames[PaletteLineEnd]
+    +' PaletteBitOrder='+RawImageBitOrderNames[PaletteBitOrder]
+    +' PaletteByteOrder='+RawImageByteOrderNames[PaletteByteOrder]
+    +' PaletteBytesPerLine->'+IntToStr(GetBytesPerLine(Width,PaletteBitsPerIndex,PaletteLineEnd))
+    +'';
+end;
+
+
+{ TRawImage }
+
+function GetBytesPerLine(AWidth: Cardinal; ABitsPerPixel: Byte; ALineEnd: TRawImageLineEnd): PtrUInt;
+begin
+  Result := (GetBitsPerLine(AWidth, ABitsPerPixel, ALineEnd) + 7) shr 3;
+end;
+
+function GetBitsPerLine(AWidth: Cardinal; ABitsPerPixel: Byte; ALineEnd: TRawImageLineEnd): PtrUInt;
+begin
+  Result := AWidth * ABitsPerPixel;
+  case ALineEnd of
+    rileTight: ;
+    rileByteBoundary:   Result := (Result +  7) and not PtrUInt(7);
+    rileWordBoundary:   Result := (Result + 15) and not PtrUInt(15);
+    rileDWordBoundary:  Result := (Result + 31) and not PtrUInt(31);
+    rileQWordBoundary:  Result := (Result + 63) and not PtrUInt(63);
+    rileDQWordBoundary: Result := (Result +127) and not PtrUInt(127);
+  end;
+end;
+
+procedure RawImage_ReadBits(AData: PByte; const APosition: TRawImagePosition;
+                       ABitsPerPixel, APrec, AShift: Byte;
+                       ABitOrder: TRawImageBitOrder; out ABits: Word);
+var
+  PB: PByte;
+  PW: PWord  absolute PB;
+  PC: PCardinal absolute PB;
+  PrecMask: Word;
+begin
+  PrecMask := (Word(1) shl APrec) - 1;
+  PB := @AData[APosition.Byte];
+  case ABitsPerPixel of
+  1,2,4:
+      begin
+        if ABitOrder = riboBitsInOrder then
+          ABits := (PB^ shr (AShift + APosition.Bit)) and PrecMask
+        else
+          ABits := (PB^ shr (AShift + 7 - APosition.Bit)) and PrecMask;
+      end;
+  8:  begin
+        ABits := (PB^ shr AShift) and PrecMask;
+      end;
+  16: begin
+        {$note check endian and/or source byte order}
+        ABits := (PW^ shr AShift) and PrecMask;
+      end;
+  32: begin
+        {$note check endian and/or source byte order}
+        ABits := (PC^ shr AShift) and PrecMask;
+      end;
+  else
+    ABits:=0;
+  end;
+
+  if APrec<16
+  then begin
+    // add missing bits
+    ABits := ABits shl (16 - APrec);
+    ABits := ABits or MissingBits[APrec, ABits shr 13];
+  end;
+end;
+
+procedure RawImage_WriteBits(AData: PByte; const APosition: TRawImagePosition;
+                       ABitsPerPixel, APrec, AShift: Byte;
+                       ABitOrder: TRawImageBitOrder; ABits: Word);
+var
+  PB: PByte;
+  PW: PWord absolute PB;
+  PC: PCardinal absolute PB;
+  PrecMask: Cardinal;
+  BitShift: Integer;
+begin
+  PB := @AData[APosition.Byte];
+  PrecMask := (Cardinal(1) shl APrec) - 1;
+  ABits := ABits shr (16 - APrec);
+
+  case ABitsPerPixel of
+  1,2,4:
+      begin
+        if ABitOrder = riboBitsInOrder
+        then BitShift := AShift + APosition.Bit
+        else BitShift := AShift + 7 - APosition.Bit;
+
+        PrecMask := not(PrecMask shl BitShift);
+        PB^ := (PB^ and PrecMask) or (ABits shl BitShift);
+      end;
+  8:  begin
+        PrecMask := not(PrecMask shl aShift);
+        PB^ := (PB^ and PrecMask) or (ABits shl AShift);
+      end;
+  16: begin
+        {$note check endian and/or source byte order}
+        PrecMask := not(PrecMask shl AShift);
+        PW^ := (PW^ and PrecMask) or (ABits shl AShift);
+      end;
+  32: begin
+        {$note check endian and/or source byte order}
+        PrecMask := not(PrecMask shl AShift);
+        PC^ := (PC^ and PrecMask) or (ABits shl AShift);
+      end;
+  end;
+end;
+
+function TRawImage.IsMasked(ATestPixels: Boolean): Boolean;
 
   function CheckMask: boolean;
   var
@@ -311,11 +719,10 @@ function RawImage_IsMasked(const ARawImage: TRawImage; ATestPixels: Boolean): Bo
     EndMask: Cardinal; // No mask bits should be set. The Cardinal at line end
                        // can contain some unused bits. This mask AND cardinal
                        // at line end makes the unsused bits all 0.
-    UsedBytesPerLine: integer;
-    
+
     procedure CreateEndMask;
     begin
-      if ARawImage.Description.MaskBitOrder = riboBitsInOrder
+      if Description.MaskBitOrder = riboBitsInOrder
       then EndMask := ($FF shr UnusedBitsAtEnd)
       else EndMask := ($FF shl UnusedBitsAtEnd) and $FF;
       // add unused bytes
@@ -345,24 +752,22 @@ function RawImage_IsMasked(const ARawImage: TRawImage; ATestPixels: Boolean): Bo
         ' UnusedBitsAtEnd='+dbgs(UnusedBitsAtEnd),
         ' UsedBitsPerLine='+dbgs(UsedBitsPerLine),
         ' Width='+dbgs(Width),
-        ' ARawImage.Description.AlphaBitsPerPixel='+dbgs(ARawImage.Description.AlphaBitsPerPixel));
+        ' ARawImage.Description.AlphaBitsPerPixel='+dbgs(Description.AlphaBitsPerPixel));
     end;
     {$endif}
 
   begin
     Result := True;
     
-    Width := ARawImage.Description.Width;
-    Height := ARawImage.Description.Height;
+    Width := Description.Width;
+    Height := Description.Height;
 
-    TotalBitsPerLine := GetBitsPerLine(Width,
-                          ARawImage.Description.MaskBitsPerPixel,
-                          ARawImage.Description.MaskLineEnd);
+    TotalBitsPerLine := GetBitsPerLine(Width, Description.MaskBitsPerPixel, Description.MaskLineEnd);
     TotalBits := Height * TotalBitsPerLine;
-    if ARawImage.MaskSize < PtrUInt((TotalBits + 7) shr 3)
+    if MaskSize < PtrUInt((TotalBits + 7) shr 3)
     then raise Exception.Create('RawImage_IsMasked - Invalid MaskSize');
 
-    UsedBitsPerLine := Width * ARawImage.Description.MaskBitsPerPixel;
+    UsedBitsPerLine := Width * Description.MaskBitsPerPixel;
     UnusedBitsAtEnd := TotalBitsPerLine - UsedBitsPerLine;
 
     if UnusedBitsAtEnd = 0
@@ -370,7 +775,7 @@ function RawImage_IsMasked(const ARawImage: TRawImage; ATestPixels: Boolean): Bo
       // the next line follows the previous one, so we can compare the whole
       // memblock in one go
 
-      P := PCardinal(ARawImage.Mask);
+      P := PCardinal(Mask);
       for x := 1 to TotalBits shr 5 do
       begin
         if p^ <> 0 then Exit;
@@ -405,7 +810,7 @@ function RawImage_IsMasked(const ARawImage: TRawImage; ATestPixels: Boolean): Bo
       // create mask for the last bits
       CreateEndMask;
 
-      LinePtr := ARawImage.Mask;
+      LinePtr := Mask;
       for y := 0 to Height - 1 do
       begin
         p := PCardinal(LinePtr);
@@ -428,11 +833,11 @@ begin
   //DebugLn('RawImageMaskIsEmpty Quicktest: empty ',dbgs(RawImage^.Description.Width),'x',dbgs(RawImage^.Description.Height));
 
   // quick test
-  if (ARawImage.Mask = nil)
-  or (ARawImage.MaskSize = 0)
-  or (ARawImage.Description.MaskBitsPerPixel = 0)
-  or (ARawImage.Description.Width = 0)
-  or (ARawImage.Description.Height = 0)
+  if (Mask = nil)
+  or (MaskSize = 0)
+  or (Description.MaskBitsPerPixel = 0)
+  or (Description.Width = 0)
+  or (Description.Height = 0)
   then begin
     {$IFDEF VerboseRawImage}
     DebugLn('RawImageMaskIsEmpty Quicktest: empty');
@@ -457,7 +862,7 @@ begin
   end;
 end;
 
-function RawImage_IsTransparent(const ARawImage: TRawImage; ATestPixels: Boolean): Boolean;
+function TRawImage.IsTransparent(ATestPixels: Boolean): Boolean;
   function CheckAlpha: Boolean;
   begin
     {$note TODO: implement CheckAlpha}
@@ -465,455 +870,185 @@ function RawImage_IsTransparent(const ARawImage: TRawImage; ATestPixels: Boolean
   end;
 begin
   Result :=
-    (ARawImage.Data <> nil) and
-    (ARawImage.DataSize <> 0) and
-    (ARawImage.Description.AlphaPrec <> 0) and
-    (ARawImage.Description.Width = 0) and
-    (ARawImage.Description.Height = 0);
+    (Data <> nil) and
+    (DataSize <> 0) and
+    (Description.AlphaPrec <> 0) and
+    (Description.Width = 0) and
+    (Description.Height = 0);
 
   if Result and ATestPixels then
     Result := CheckAlpha;
 end;
 
-{$ifdef OldRawImageProcs}
-function RawImageDescriptionAsString(Desc: PRawImageDescription): string;
+function TRawImage.ReadBits(const APosition: TRawImagePosition; APrec, AShift: Byte): Word;
 begin
-  Result := RawImageDescription_AsString(Desc^);
-end;
-{$endif}
-
-function RawImageDescription_AsString(const ADesc: TRawImageDescription): string;
-
-  function BoolStr(b: boolean): string;
-  begin
-    if b then
-      Result:='true'
-    else
-      Result:='false';
-  end;
-
-begin
-  with ADesc do
-  begin
-    Result:=
-       ' Format='+RawImageColorFormatNames[Format]
-      +' HasPalette->'+BoolStr(PaletteColorCount <> 0)
-      +' HasMask->'+BoolStr(PaletteColorCount <> 0)
-      +' Depth='+IntToStr(Depth)
-      +' Width='+IntToStr(Width)
-      +' Height='+IntToStr(Height)
-      +' BitOrder='+RawImageBitOrderNames[BitOrder]
-      +' ByteOrder='+RawImageByteOrderNames[ByteOrder]
-      +' LineOrder='+RawImageLineOrderNames[LineOrder]
-//      +' ColorCount='+IntToStr(ColorCount)
-      +' LineEnd='+RawImageLineEndNames[LineEnd]
-      +' BitsPerPixel='+IntToStr(BitsPerPixel)
-      +' BytesPerLine->'+IntToStr(GetBytesPerLine(Width,BitsPerPixel,LineEnd))
-      +' RedPrec='+IntToStr(RedPrec)
-      +' RedShift='+IntToStr(RedShift)
-      +' GreenPrec='+IntToStr(GreenPrec)
-      +' GreenShift='+IntToStr(GreenShift)
-      +' BluePrec='+IntToStr(BluePrec)
-      +' BlueShift='+IntToStr(BlueShift)
-      +' AlphaPrec='+IntToStr(AlphaPrec)
-      +' AlphaShift='+IntToStr(AlphaShift)
-      +' ~~~mask~~~'
-      +' MaskBitsPerPixel='+IntToStr(MaskBitsPerPixel)
-      +' MaskShift='+IntToStr(MaskShift)
-      +' MaskLineEnd='+RawImageLineEndNames[MaskLineEnd]
-      +' MaskBitOrder='+RawImageBitOrderNames[MaskBitOrder]
-      +' MaskBytesPerLine->'+IntToStr(GetBytesPerLine(Width,MaskBitsPerPixel,MaskLineEnd))
-      +' ~~~palette~~~'
-      +' PaletteColorCount='+IntToStr(PaletteColorCount)
-      +' PaletteBitsPerIndex='+IntToStr(PaletteBitsPerIndex)
-      +' PaletteShift='+IntToStr(PaletteShift)
-      +' PaletteLineEnd='+RawImageLineEndNames[PaletteLineEnd]
-      +' PaletteBitOrder='+RawImageBitOrderNames[PaletteBitOrder]
-      +' PaletteByteOrder='+RawImageByteOrderNames[PaletteByteOrder]
-      +' PaletteBytesPerLine->'+IntToStr(GetBytesPerLine(Width,PaletteBitsPerIndex,PaletteLineEnd))
-      +'';
-  end;
+  RawImage_ReadBits(Data, APosition, Description.BitsPerPixel, APrec, AShift, Description.BitOrder, Result);
 end;
 
-{$ifdef OldRawImageProcs}
-procedure FreeRawImageData(RawImage: PRawImage);
-begin
-  RawImage_FreeData(RawImage^);
-end;
-{$endif}
-
-procedure RawImage_FreeData(var ARawImage: TRawImage);
-begin
-  FreeMem(ARawImage.Data);
-  ARawImage.Data := nil;
-  ARawImage.DataSize:=0;
-
-  FreeMem(ARawImage.Mask);
-  ARawImage.Mask := nil;
-  ARawImage.MaskSize := 0;
-  
-  FreeMem(ARawImage.Palette);
-  ARawImage.Palette := nil;
-  ARawImage.PaletteSize:=0;
-end;
-
-{$ifdef OldRawImageProcs}
-procedure ReleaseRawImageData(RawImage: PRawImage);
-begin
-  RawImage_ReleaseData(RawImage^);
-end;
-{$endif}
-
-procedure RawImage_ReleaseData(var ARawImage: TRawImage);
-begin
-  ARawImage.Data:=nil;
-  ARawImage.DataSize:=0;
-  ARawImage.Mask:=nil;
-  ARawImage.MaskSize:=0;
-  ARawImage.Palette:=nil;
-  ARawImage.PaletteSize:=0;
-end;
-
-{-------------------------------------------------------------------------------
-  Beware: Data is used in ReallocMem
-
--------------------------------------------------------------------------------}
-{$ifdef OldRawImageProcs}
-procedure CreateRawImageData(Width, Height, BitsPerPixel: cardinal;
-  LineEnd: TRawImageLineEnd; var Data: Pointer; var DataSize: PtrUInt);
+procedure TRawImage.ReadChannels(const APosition: TRawImagePosition; out ARed, AGreen, ABlue, AAlpha: Word);
 var
-  PixelCount: PtrUInt;
-  BitsPerLine: PtrUInt;
-  DataBits: QWord;
+  D: TRawImageDescription absolute Description;
 begin
-  // get current size
-  PixelCount:=Width*Height;
-  if PixelCount=0 then exit;
+  case Description.Format of
+    ricfRGBA: begin
+      RawImage_ReadBits(Data, APosition, D.BitsPerPixel, D.RedPrec, D.RedShift, D.BitOrder, ARed);
+      RawImage_ReadBits(Data, APosition, D.BitsPerPixel, D.GreenPrec, D.GreenShift, D.BitOrder, AGreen);
+      RawImage_ReadBits(Data, APosition, D.BitsPerPixel, D.BluePrec, D.BlueShift, D.BitOrder, ABlue);
+    end;
 
-  // calculate BitsPerLine
-  BitsPerLine:=GetBitsPerLine(Width,BitsPerPixel,LineEnd);
+    ricfGray: begin
+      RawImage_ReadBits(Data, APosition, D.BitsPerPixel, D.RedPrec, D.RedShift, D.BitOrder, ARed);
+      AGreen := ARed;
+      ABlue := ARed;
+    end;
 
-  // create pixels
-  DataBits:=QWord(BitsPerLine)*Height;
-  DataSize:=cardinal((DataBits+7) shr 3);
-  ReAllocMem(Data,DataSize);
-  FillChar(Data^,DataSize,0);
+  else
+    ARed := 0;
+    AGreen := 0;
+    ABlue := 0;
+    AAlpha := 0;
+    Exit;
+  end;
+  
+  if D.AlphaPrec > 0
+  then RawImage_ReadBits(Data, APosition, D.BitsPerPixel, D.AlphaPrec, D.AlphaShift, D.BitOrder, AAlpha)
+  else AAlpha := High(AAlpha);
 end;
-{$endif}
 
-procedure RawImage_CreateData(var ARawImage: TRawImage; AZeroMem: Boolean);
+procedure TRawImage.ReadMask(const APosition: TRawImagePosition; out AMask: Boolean);
+var
+  D: TRawImageDescription absolute Description;
+  M: Word;
+begin
+  if (D.MaskBitsPerPixel > 0) and (Mask <> nil)
+  then begin
+    RawImage_ReadBits(Mask, APosition, D.MaskBitsPerPixel, 1, D.MaskShift, D.MaskBitOrder, M);
+    AMask := M <> 0;
+  end
+  else AMask := False;
+end;
+
+procedure TRawImage.FreeData;
+begin
+  FreeMem(Data);
+  Data := nil;
+  DataSize:=0;
+
+  FreeMem(Mask);
+  Mask := nil;
+  MaskSize := 0;
+  
+  FreeMem(Palette);
+  Palette := nil;
+  PaletteSize:=0;
+end;
+
+constructor TRawImage.Init;
+begin
+  Description.Init;
+  Data := nil;
+  DataSize:=0;
+  Mask := nil;
+  MaskSize := 0;
+  Palette := nil;
+  PaletteSize:=0;
+end;
+
+function TRawImage.IsEqual(AImage: TRawImage): Boolean;
+begin
+  Result := CompareMem(@Self, @AImage, SizeOf(Self));
+end;
+
+procedure TRawImage.ReleaseData;
+begin
+  Data := nil;
+  DataSize := 0;
+  Mask := nil;
+  MaskSize := 0;
+  Palette := nil;
+  PaletteSize := 0;
+end;
+
+procedure TRawImage.WriteBits(const APosition: TRawImagePosition; APrec, AShift: Byte; ABits: Word);
+begin
+  RawImage_WriteBits(Data, APosition, Description.BitsPerPixel, APrec, AShift, Description.BitOrder, ABits);
+end;
+
+procedure TRawImage.WriteChannels(const APosition: TRawImagePosition; ARed, AGreen, ABlue, AAlpha: Word);
+var
+  D: TRawImageDescription absolute Description;
+begin
+  case D.Format of
+    ricfRGBA: begin
+      RawImage_WriteBits(Data, APosition, D.BitsPerPixel, D.RedPrec, D.RedShift, D.BitOrder, ARed);
+      RawImage_WriteBits(Data, APosition, D.BitsPerPixel, D.GreenPrec, D.GreenShift, D.BitOrder, AGreen);
+      RawImage_WriteBits(Data, APosition, D.BitsPerPixel, D.BluePrec, D.BlueShift, D.BitOrder, ABlue);
+    end;
+
+    ricfGray: begin
+      RawImage_WriteBits(Data, APosition, D.BitsPerPixel, D.RedPrec, D.RedShift, D.BitOrder, ARed);
+    end;
+  else
+    Exit;
+  end;
+
+  if D.AlphaPrec = 0 then Exit;
+
+  RawImage_WriteBits(Data, APosition, D.BitsPerPixel, D.AlphaPrec, D.AlphaShift, D.BitOrder, AAlpha);
+end;
+
+procedure TRawImage.WriteMask(const APosition: TRawImagePosition; AMask: Boolean);
+const
+  M: array[Boolean] of Word = (0, $FFFF);
+var
+  D: TRawImageDescription absolute Description;
+begin
+  if Mask = nil then Exit;
+  if D.MaskBitsPerPixel = 0 then Exit;
+  RawImage_WriteBits(Mask, APosition, D.MaskBitsPerPixel, 1, D.MaskShift, D.MaskBitOrder, M[AMask]);
+end;
+
+procedure TRawImage.CreateData(AZeroMem: Boolean);
 var
   Size: QWord;
 begin
   // get current size
-  if ARawImage.Description.Width = 0 then Exit;
-  if ARawImage.Description.Height = 0 then Exit;
+  if Description.Width = 0 then Exit;
+  if Description.Height = 0 then Exit;
 
   // calculate size
-  with ARawImage.Description do
+  with Description do
     Size := GetBitsPerLine(Width, BitsPerPixel, LineEnd);
-  Size := (Size * ARawImage.Description.Height) shr 3;
+  Size := (Size * Description.Height) shr 3;
   
-  if Size <= High(ARawImage.DataSize)
-  then ARawImage.DataSize := Size
-  else ARawImage.DataSize := High(ARawImage.DataSize);
+  if Size <= High(DataSize)
+  then DataSize := Size
+  else DataSize := High(DataSize);
 
-  ReAllocMem(ARawImage.Data, ARawImage.DataSize);
+  ReAllocMem(Data, DataSize);
 
   if AZeroMem
-  then FillChar(ARawImage.Data^, ARawImage.DataSize, 0);
+  then FillChar(Data^, DataSize, 0);
   
   // Setup mask if needed
-  if ARawImage.Description.MaskBitsPerPixel = 0 then Exit;
+  if Description.MaskBitsPerPixel = 0 then Exit;
   
   // calculate mask size
-  with ARawImage.Description do
+  with Description do
     Size := GetBitsPerLine(Width, MaskBitsPerPixel, MaskLineEnd);
-  Size := (Size * ARawImage.Description.Height) shr 3;
+  Size := (Size * Description.Height) shr 3;
 
-  if Size <= High(ARawImage.MaskSize)
-  then ARawImage.MaskSize := Size
-  else ARawImage.MaskSize := High(ARawImage.MaskSize);
+  if Size <= High(MaskSize)
+  then MaskSize := Size
+  else MaskSize := High(MaskSize);
 
-  ReAllocMem(ARawImage.Mask, ARawImage.MaskSize);
+  ReAllocMem(Mask, MaskSize);
 
   if AZeroMem
-  then FillChar(ARawImage.Mask^, ARawImage.MaskSize, 0);
+  then FillChar(Mask^, MaskSize, 0);
 end;
 
-
-{$ifdef OldRawImageProcs}
-procedure CreateRawImageDescFromMask(SrcRawImageDesc,
-  DestRawImageDesc: PRawImageDescription);
-begin
-  // original code raises an exception, imo it is perfectly valid
-  // to create a black image (MWE)
-  if (SrcRawImageDesc^.MaskBitsPerPixel = 0) then
-    RaiseGDBException('CreateRawImageFromMask Alpha not separate');
-  RawImageDescription_CreateFromMask(SrcRawImageDesc^, DestRawImageDesc^);
-end;
-{$endif}
-
-function GetDescription_BPP24_B8G8R8_BIO_TTB(AWidth, AHeight: integer): TRawImageDescription;
-{ pf24bit:
-
- Format=ricfRGBA HasPalette=false Depth=24 PaletteColorCount=0
- BitOrder=riboBitsInOrder ByteOrder=DefaultByteOrder
- LineOrder=riloTopToBottom
- BitsPerPixel=24 LineEnd=rileDWordBoundary
- RedPrec=8 RedShift=16 GreenPrec=8 GreenShift=8 BluePrec=8 BlueShift=0
-}
-begin
-  // setup an artificial ScanLineImage with format RGB 24 bit, 24bit depth format
-  FillChar(Result, SizeOf(Result),0);
-  with Result do
-  begin
-    Format:=ricfRGBA;
-    Depth:=24; // used bits per pixel
-    Width:=AWidth;
-    Height:=AHeight;
-    BitOrder:=riboBitsInOrder;
-    ByteOrder:=DefaultByteOrder;
-    LineOrder:=riloTopToBottom;
-    BitsPerPixel:=24; // bits per pixel. can be greater than Depth.
-    LineEnd:=rileDWordBoundary;
-    RedPrec:=8; // red precision. bits for red
-    RedShift:=16;
-    GreenPrec:=8;
-    GreenShift:=8; // bitshift. Direction: from least to most significant
-    BluePrec:=8;
-//    BlueShift:=0;
-//    AlphaPrec:=0;
-//    MaskBitsPerPixel:=0;
-  end;
-end;
-
-function GetDescription_BPP24_B8G8R8_M1_BIO_TTB(AWidth, AHeight: integer): TRawImageDescription;
-{ pf24bit:
-
- Format=ricfRGBA HasPalette=false Depth=24 PaletteColorCount=0
- BitOrder=riboBitsInOrder ByteOrder=DefaultByteOrder
- LineOrder=riloTopToBottom
- BitsPerPixel=24 LineEnd=rileDWordBoundary
- RedPrec=8 RedShift=16 GreenPrec=8 GreenShift=8 BluePrec=8 BlueShift=0
- Masked
-}
-begin
-  // setup an artificial ScanLineImage with format RGB 24 bit, 24bit depth format
-  FillChar(Result, SizeOf(Result),0);
-  with Result do
-  begin
-    Format:=ricfRGBA;
-    Depth:=24; // used bits per pixel
-    Width:=AWidth;
-    Height:=AHeight;
-    BitOrder:=riboBitsInOrder;
-    ByteOrder:=DefaultByteOrder;
-    LineOrder:=riloTopToBottom;
-    BitsPerPixel:=24; // bits per pixel. can be greater than Depth.
-    LineEnd:=rileDWordBoundary;
-    RedPrec:=8; // red precision. bits for red
-    RedShift:=16;
-    GreenPrec:=8;
-    GreenShift:=8; // bitshift. Direction: from least to most significant
-    BluePrec:=8;
-//    BlueShift:=0;
-//    AlphaPrec:=0;
-    MaskBitsPerPixel:=1;
-    MaskBitOrder:=riboBitsInOrder;
-//    MaskShift:=0;        // the shift (=position) of the mask bit
-    MaskLineEnd:=rileDWordBoundary;
-  end;
-end;
-
-function GetDescription_BPP32_B8G8R8_BIO_TTB(AWidth, AHeight: integer): TRawImageDescription;
-{ pf32bit:
-
- Format=ricfRGBA HasPalette=false Depth=24 PaletteColorCount=0
- BitOrder=riboBitsInOrder ByteOrder=DefaultByteOrder
- LineOrder=riloTopToBottom
- BitsPerPixel=32 LineEnd=rileDWordBoundary
- RedPrec=8 RedShift=16 GreenPrec=8 GreenShift=8 BluePrec=8 BlueShift=0
- No alpha
- No mask
-}
-begin
-  // setup an artificial ScanLineImage with format RGB 24 bit, 32bit depth format
-  FillChar(Result, SizeOf(Result),0);
-  with Result do
-  begin
-    Format:=ricfRGBA;
-    Depth:=24; // used bits per pixel
-    Width:=AWidth;
-    Height:=AHeight;
-    BitOrder:=riboBitsInOrder;
-    ByteOrder:=DefaultByteOrder;
-    LineOrder:=riloTopToBottom;
-    BitsPerPixel:=32; // bits per pixel. can be greater than Depth.
-    LineEnd:=rileDWordBoundary;
-    RedPrec:=8; // red precision. bits for red
-    RedShift:=16;
-    GreenPrec:=8;
-    GreenShift:=8; // bitshift. Direction: from least to most signifikant
-    BluePrec:=8;
-//    BlueShift:=0;
-//    AlphaPrec:=0;
-//    MaskBitsPerPixel:=0;
-  end;
-end;
-
-function GetDescription_BPP32_B8G8R8_M1_BIO_TTB(AWidth, AHeight: integer): TRawImageDescription;
-{ pf32bit:
-
- Format=ricfRGBA HasPalette=false Depth=24 PaletteColorCount=0
- BitOrder=riboBitsInOrder ByteOrder=DefaultByteOrder
- LineOrder=riloTopToBottom
- BitsPerPixel=32 LineEnd=rileDWordBoundary
- RedPrec=8 RedShift=16 GreenPrec=8 GreenShift=8 BluePrec=8 BlueShift=0
- no alpha
- with mask
-}
-begin
-  // setup an artificial ScanLineImage with format RGB 24 bit, 32bit depth format
-  FillChar(Result, SizeOf(Result),0);
-  with Result do
-  begin
-    Format:=ricfRGBA;
-    Depth:=24; // used bits per pixel
-    Width:=AWidth;
-    Height:=AHeight;
-    BitOrder:=riboBitsInOrder;
-    ByteOrder:=DefaultByteOrder;
-    LineOrder:=riloTopToBottom;
-    BitsPerPixel:=32; // bits per pixel. can be greater than Depth.
-    LineEnd:=rileDWordBoundary;
-    RedPrec:=8; // red precision. bits for red
-    RedShift:=16;
-    GreenPrec:=8;
-    GreenShift:=8; // bitshift. Direction: from least to most signifikant
-    BluePrec:=8;
-//    BlueShift:=0;
-//    AlphaPrec:=0;
-    MaskBitsPerPixel:=1;
-    MaskBitOrder:=riboBitsInOrder;
-//    MaskShift:=0;        // the shift (=position) of the mask bit
-    MaskLineEnd:=rileDWordBoundary;
-  end;
-end;
-
-function GetDescription_BPP32_A8B8G8R8_BIO_TTB(AWidth, AHeight: integer): TRawImageDescription;
-{ pf32bit:
-
- Format=ricfRGBA HasPalette=false Depth=24 PaletteColorCount=0
- BitOrder=riboBitsInOrder ByteOrder=DefaultByteOrder
- LineOrder=riloTopToBottom
- BitsPerPixel=32 LineEnd=rileDWordBoundary
- RedPrec=8 RedShift=16 GreenPrec=8 GreenShift=8 BluePrec=8 BlueShift=0
- alpha
- no mask
-}
-var
-  ADesc: TRawImageDescription;
-begin
-  // setup an artificial ScanLineImage with format RGB 32 bit, 32bit depth format
-  FillChar(Result, SizeOf(Result),0);
-  with Result do
-  begin
-    Format:=ricfRGBA;
-    Depth:=32; // used bits per pixel
-    Width:=AWidth;
-    Height:=AHeight;
-    BitOrder:=riboBitsInOrder;
-    ByteOrder:=DefaultByteOrder;
-    LineOrder:=riloTopToBottom;
-    BitsPerPixel:=32; // bits per pixel. can be greater than Depth.
-    LineEnd:=rileDWordBoundary;
-    RedPrec:=8; // red precision. bits for red
-    RedShift:=16;
-    GreenPrec:=8;
-    GreenShift:=8; // bitshift. Direction: from least to most signifikant
-    BluePrec:=8;
-    BlueShift:=0;
-    AlphaPrec:=8;
-    AlphaShift:=24;
-//    MaskBitsPerPixel:=0;
-  end;
-end;
-
-
-function GetDescriptionFromMask(const ASrc: TRawImageDescription): TRawImageDescription;
-begin
-  FillByte(Result, SizeOf(Result), 0);
-  
-  with Result do
-  begin
-    Format       := ricfGray;
-    Width        := ASrc.Width;
-    Height       := ASrc.Height;
-    Depth        := 1; // per def
-    BitOrder     := ASrc.MaskBitOrder;
-    ByteOrder    := DefaultByteOrder;
-    LineOrder    := ASrc.LineOrder;
-    LineEnd      := ASrc.MaskLineEnd;
-    BitsPerPixel := ASrc.MaskBitsPerPixel;
-    RedPrec      := 1;
-    RedShift     := ASrc.MaskShift;
-  end;
-end;
-
-function GetDescriptionFromAlpha(const ASrc: TRawImageDescription): TRawImageDescription;
-begin
-  FillByte(Result, SizeOf(Result), 0);
-
-  with Result do
-  begin
-    Format       := ricfGray;
-    Width        := ASrc.Width;
-    Height       := ASrc.Height;
-    Depth        := ASrc.AlphaPrec;
-    BitOrder     := ASrc.BitOrder;
-    ByteOrder    := ASrc.ByteOrder;
-    LineOrder    := ASrc.LineOrder;
-    LineEnd      := ASrc.LineEnd;
-    BitsPerPixel := ASrc.BitsPerPixel;
-    RedPrec      := ASrc.AlphaPrec;
-    RedShift     := ASrc.AlphaShift;
-  end;
-end;
-
-{$ifdef OldRawImageProcs}
-procedure GetRawImageXYPosition(RawImageDesc: PRawImageDescription;
-  LineStarts: PRawImagePosition; x, y: cardinal;
-  var Position: TRawImagePosition);
-begin
-  RawImage_GetXYPosition(RawImageDesc^.LineOrder, RawImageDesc^.BitsPerPixel,
-                         RawImageDesc^.Height, LineStarts, x, y, Position);
-end;
-{$endif}
-
-procedure RawImage_GetXYPosition(ALineOrder: TRawImageLineOrder; ABitsPerPixel: Byte;
-                                 AHeight: Cardinal; ALineStarts: PRawImagePosition;
-                                 x, y: cardinal; var APosition: TRawImagePosition);
-var
-  BitOffset: Cardinal;
-begin
-  if ALineOrder = riloBottomToTop then
-    y := AHeight - y;
-  APosition := ALineStarts[y];
-  BitOffset := x * ABitsPerPixel + APosition.Bit;
-  APosition.Bit := BitOffset and 7;
-  Inc(APosition.Byte, BitOffset shr 3);
-end;
-
-{$ifdef OldRawImageProcs}
-procedure ExtractRawImageRect(SrcRawImage: PRawImage; const SrcRect: TRect;
-  DestRawImage: PRawImage);
-begin
-  RawImage_ExtractRect(SrcRawImage^, SrcRect, DestRawImage^);
-end;
-{$endif}
-  
-procedure RawImage_ExtractRect(const ASrc: TRawImage; const ARect: TRect; out ADst: TRawImage);
+procedure TRawImage.ExtractRect(const ARect: TRect; out ADst: TRawImage);
   procedure ExtractData(AData: PByte; ADataSize: PtrUInt; ABitsPerPixel: Byte;
                         ABitOrder: TRawImageBitOrder; ALineEnd: TRawImageLineEnd;
                         ADest: PByte; ADestSize: PtrUInt);
@@ -922,20 +1057,21 @@ procedure RawImage_ExtractRect(const ASrc: TRawImage; const ARect: TRect; out AD
     DstWidth, DstHeight: cardinal;
     x, y: Integer;
     LineOrder: TRawImageLineOrder;
-    SrcLineStarts, DstLineStarts: PRawImagePosition;
+    SrcLineStarts, DstLineStarts: TRawImageLineStarts;
     SrcStartPos, SrcEndPos, DstStartPos: TRawImagePosition;
     Shift0, Shift1: Byte;
     SrcPos: PByte;
     DstPos: PByte;
     ByteCount: PtrUInt;
   begin
-    SrcWidth := ASrc.Description.Width;
+    SrcWidth := Description.Width;
     DstWidth := ADst.Description.Width;
+    LineOrder := Description.LineOrder;
 
     //DebugLn'ExtractRawImageDataRect data=',DbgS(DestData),' Size=',DestDataSize);
     if SrcWidth = DstWidth
     then begin
-      if ASrc.Description.LineOrder = riloTopToBottom
+      if LineOrder = riloTopToBottom
       then // copy whole source from beginning
         System.Move(AData[0], ADest[0], ADestSize)
       else // copy remainder
@@ -943,28 +1079,23 @@ procedure RawImage_ExtractRect(const ASrc: TRawImage; const ARect: TRect; out AD
       Exit;
     end;
     
-    LineOrder := ASrc.Description.LineOrder;
-
-    SrcHeight := ASrc.Description.Height;
+    SrcHeight := Description.Height;
     DstHeight := ADst.Description.Height;
 
-
     // calculate line starts
-    SrcLineStarts := nil;
-    DstLineStarts := nil;
-    if ASrc.Description.LineOrder = riloTopToBottom
+    if LineOrder = riloTopToBottom
     then // we only need the first part from start
-      RawImage_CreateLineStarts(SrcWidth, ARect.Top + DstHeight, ABitsPerPixel, ALineEnd, SrcLineStarts)
+      SrcLineStarts.Init(SrcWidth, ARect.Top + DstHeight, ABitsPerPixel, ALineEnd, LineOrder)
     else
-      RawImage_CreateLineStarts(SrcWidth, SrcHeight - ARect.Top, ABitsPerPixel, ALineEnd, SrcLineStarts);
-    RawImage_CreateLineStarts(DstWidth, DstHeight, ABitsPerPixel, ALineEnd, DstLineStarts);
+      SrcLineStarts.Init(SrcWidth, SrcHeight - ARect.Top, ABitsPerPixel, ALineEnd, LineOrder);
+    DstLineStarts.Init(DstWidth, DstHeight, ABitsPerPixel, ALineEnd, LineOrder);
 
     // copy
     for y := 0 to DstHeight - 1 do
     begin
-      RawImage_GetXYPosition(LineOrder, ABitsPerPixel, SrcHeight, SrcLineStarts, ARect.Left, y + ARect.Top, SrcStartPos);
-      RawImage_GetXYPosition(LineOrder, ABitsPerPixel, SrcHeight, SrcLineStarts, ARect.Right, y + ARect.Top, SrcEndPos);
-      RawImage_GetXYPosition(LineOrder, ABitsPerPixel, DstHeight, DstLineStarts, 0, y, DstStartPos);
+      SrcStartPos := SrcLineStarts.GetPosition(ARect.Left, y + ARect.Top);
+      SrcEndPos   := SrcLineStarts.GetPosition(ARect.Right, y + ARect.Top);
+      DstStartPos := DstLineStarts.GetPosition(0, y);
       
       //DebugLn'ExtractRawImageDataRect A y=',y,' SrcByte=',SrcLineStartPosition.Byte,' SrcBit=',SrcLineStartPosition.Bit,
       //' DestByte=',DestLineStartPosition.Byte,' DestBit=',DestLineStartPosition.Bit);
@@ -1017,24 +1148,20 @@ procedure RawImage_ExtractRect(const ASrc: TRawImage; const ARect: TRect; out AD
         break;
       end;
     end;
-    // clean up
-    FreeMem(SrcLineStarts);
-    FreeMem(DstLineStarts);
   end;
 
 var
-  SrcMaskDesc, DestMaskDesc: TRawImageDescription;
   R: TRect;
 begin
   //DebugLn'ExtractRawImageRect SrcRawImage=',RawImageDescriptionAsString(@SrcRawImage^.Description),
   //  ' SrcRect=',SrcRect.Left,',',SrcRect.Top,',',SrcRect.Right,',',SrcRect.Bottom);
 
   // copy description
-  ADst.Description := ASrc.Description;
-  RawImage_ReleaseData(ADst);
+  ADst.Description := Description;
+  ADst.ReleaseData;
 
   // get intersection
-  IntersectRect(R, Rect(0, 0, ASrc.Description.Width, ASrc.Description.Height), ARect);
+  IntersectRect(R, Rect(0, 0, Description.Width, Description.Height), ARect);
   ADst.Description.Width := R.Right - R.Left;
   ADst.Description.Height := R.Bottom - R.Top;
   if (ADst.Description.Width <= 0)
@@ -1046,37 +1173,45 @@ begin
   end;
   
   // allocate some space
-  RawImage_CreateData(ADst, False);
+  ADst.CreateData(False);
 
   // extract rectangle from Data
-  ExtractData(ASrc.Data, ASrc.DataSize,
-              ASrc.Description.BitsPerPixel, ASrc.Description.BitOrder,
-              ASrc.Description.LineEnd, ADst.Data, ADst.DataSize);
+  ExtractData(Data, DataSize, Description.BitsPerPixel, Description.BitOrder,
+              Description.LineEnd, ADst.Data, ADst.DataSize);
 
   // extract rectangle from MAsk
 
-  if ASrc.Description.MaskBitsPerPixel = 0 then Exit;
-  if ASrc.Mask = nil then Exit;
-  if ASrc.MaskSize = 0 then Exit;
+  if Description.MaskBitsPerPixel = 0 then Exit;
+  if Mask = nil then Exit;
+  if MaskSize = 0 then Exit;
 
 
   //DebugLn'ExtractRawImageRect Mask SrcRawImage=',RawImageDescriptionAsString(@SrcMaskDesc));
-  ExtractData(ASrc.Mask, ASrc.MaskSize,
-              ASrc.Description.MaskBitsPerPixel, ASrc.Description.MaskBitOrder,
-              ASrc.Description.MaskLineEnd, ADst.Mask, ADst.MaskSize);
+  ExtractData(Mask, MaskSize, Description.MaskBitsPerPixel, Description.MaskBitOrder,
+              Description.MaskLineEnd, ADst.Mask, ADst.MaskSize);
 end;
 
-{$ifdef OldRawImageProcs}
-procedure CreateRawImageLineStarts(Width, Height, BitsPerPixel: cardinal;
-  LineEnd: TRawImageLineEnd; var LineStarts: PRawImagePosition);
+{ TRawImageLineStarts }
+
+destructor TRawImageLineStarts.Done;
 begin
-  RawImage_CreateLineStarts(Width, Height, BitsPerPixel, LineEnd, LineStarts);
+  // not really needed, but keep the compiler happy
+  SetLength(Positions, 0);
 end;
-{$endif}
 
-procedure RawImage_CreateLineStarts(AWidth, AHeight: cardinal; ABitsPerPixel: Byte;
-  ALineEnd: TRawImageLineEnd; var ALineStarts: PRawImagePosition);
-// LineStarts is recreated, so make sure it is nil or a valid mem
+function TRawImageLineStarts.GetPosition(x, y: cardinal): TRawImagePosition;
+var
+  BitOffset: Cardinal;
+begin
+  if FLineOrder = riloBottomToTop then
+    y := FHeight - y;
+  Result := Positions[y];
+  BitOffset := x * FBitsPerPixel + Result.Bit;
+  Result.Bit := BitOffset and 7;
+  Inc(Result.Byte, BitOffset shr 3);
+end;
+
+constructor TRawImageLineStarts.Init(AWidth, AHeight: cardinal; ABitsPerPixel: Byte; ALineEnd: TRawImageLineEnd; ALineOrder: TRawImageLineOrder);
 var
   PixelCount: cardinal;
   BitsPerLine: cardinal;
@@ -1087,6 +1222,12 @@ var
   LoopBit: Byte;
   LoopByte: PtrUInt;
 begin
+  FWidth := AWidth;
+  FHeight := AHeight;
+  FBitsPerPixel := ABitsPerPixel;
+  FLineEnd := ALineEnd;
+  FLineOrder := ALineOrder;
+  
   // get current size
   PixelCount := AWidth * AHeight;
   if PixelCount = 0 then exit;
@@ -1097,9 +1238,10 @@ begin
   ExtraBitsPerLine := BitsPerLine and 7;
 
   // create line start array
-  ReAllocMem(ALineStarts, AHeight * SizeOf(TRawImagePosition));
-  ALineStarts[0].Byte := 0;
-  ALineStarts[0].Bit := 0;
+  SetLength(Positions, AHeight);
+
+  Positions[0].Byte := 0;
+  Positions[0].Bit := 0;
   LoopBit := 0;
   LoopByte := 0;
   for CurLine := 1 to AHeight-1 do
@@ -1107,28 +1249,138 @@ begin
     CurBitOffset := LoopBit + ExtraBitsPerLine;
     LoopByte := LoopByte + BytesPerLine + (CurBitOffset shr 3);
     LoopBit := CurBitOffset and 7;
-    ALineStarts[CurLine].Byte := LoopByte;
-    ALineStarts[CurLine].Bit := LoopBit;
+    Positions[CurLine].Byte := LoopByte;
+    Positions[CurLine].Bit := LoopBit;
   end;
 end;
 
-function GetBytesPerLine(AWidth: Cardinal; ABitsPerPixel: Byte; ALineEnd: TRawImageLineEnd): PtrUInt;
-begin
-  Result := (GetBitsPerLine(AWidth, ABitsPerPixel, ALineEnd) + 7) shr 3;
-end;
 
-function GetBitsPerLine(AWidth: Cardinal; ABitsPerPixel: Byte; ALineEnd: TRawImageLineEnd): PtrUInt;
+
+{$ifdef OldRawImageProcs}
+function RawImageMaskIsEmpty(RawImage: PRawImage; TestPixels: boolean): boolean;
 begin
-  Result := AWidth * ABitsPerPixel;
-  case ALineEnd of
-    rileTight: ;
-    rileByteBoundary:   Result := (Result +  7) and not PtrUInt(7);
-    rileWordBoundary:   Result := (Result + 15) and not PtrUInt(15);
-    rileDWordBoundary:  Result := (Result + 31) and not PtrUInt(31);
-    rileQWordBoundary:  Result := (Result + 63) and not PtrUInt(63);
-    rileDQWordBoundary: Result := (Result +127) and not PtrUInt(127);
+  Result := not RawImage^.IsMasked(TestPixels);
+end;
+{$endif}
+
+{$ifdef OldRawImageProcs}
+function RawImageDescriptionAsString(Desc: PRawImageDescription): string;
+begin
+  Result := Desc^.AsString;
+end;
+{$endif}
+
+{$ifdef OldRawImageProcs}
+procedure FreeRawImageData(RawImage: PRawImage);
+begin
+  RawImage^.FreeData;
+end;
+{$endif}
+
+{$ifdef OldRawImageProcs}
+procedure ReleaseRawImageData(RawImage: PRawImage);
+begin
+  RawImage^.ReleaseData;
+end;
+{$endif}
+
+{-------------------------------------------------------------------------------
+  Beware: Data is used in ReallocMem
+
+-------------------------------------------------------------------------------}
+{$ifdef OldRawImageProcs}
+procedure CreateRawImageData(Width, Height, BitsPerPixel: cardinal;
+  LineEnd: TRawImageLineEnd; var Data: Pointer; var DataSize: PtrUInt);
+var
+  PixelCount: PtrUInt;
+  BitsPerLine: PtrUInt;
+  DataBits: QWord;
+begin
+  // get current size
+  PixelCount:=Width*Height;
+  if PixelCount=0 then exit;
+
+  // calculate BitsPerLine
+  BitsPerLine:=GetBitsPerLine(Width,BitsPerPixel,LineEnd);
+
+  // create pixels
+  DataBits:=QWord(BitsPerLine)*Height;
+  DataSize:=cardinal((DataBits+7) shr 3);
+  ReAllocMem(Data,DataSize);
+  FillChar(Data^,DataSize,0);
+end;
+{$endif}
+
+{$ifdef OldRawImageProcs}
+procedure CreateRawImageDescFromMask(SrcRawImageDesc,
+  DestRawImageDesc: PRawImageDescription);
+begin
+  // original code raises an exception, imo it is perfectly valid
+  // to create a black image (MWE)
+  if (SrcRawImageDesc^.MaskBitsPerPixel = 0) then
+    RaiseGDBException('CreateRawImageFromMask Alpha not separate');
+
+  DestRawImageDesc^ := SrcRawImageDesc^.GetDescriptionFromMask;
+end;
+{$endif}
+
+{$ifdef OldRawImageProcs}
+procedure GetRawImageXYPosition(RawImageDesc: PRawImageDescription;
+  LineStarts: PRawImagePosition; x, y: cardinal;
+  var Position: TRawImagePosition);
+var
+  BitOffset: cardinal;
+begin
+  if RawImageDesc^.LineOrder=riloBottomToTop then
+    y:=RawImageDesc^.Height-y;
+  Position:=LineStarts[y];
+  BitOffset:=RawImageDesc^.BitsPerPixel*cardinal(x)+Position.Bit;
+  Position.Bit:=(BitOffset and 7);
+  inc(Position.Byte,BitOffset shr 3);
+end;
+{$endif}
+
+{$ifdef OldRawImageProcs}
+procedure ExtractRawImageRect(SrcRawImage: PRawImage; const SrcRect: TRect;
+  DestRawImage: PRawImage);
+begin
+  SrcRawImage^.ExtractRect(SrcRect, DestRawImage^);
+end;
+{$endif}
+
+{$ifdef OldRawImageProcs}
+procedure CreateRawImageLineStarts(Width, Height, BitsPerPixel: cardinal;
+  LineEnd: TRawImageLineEnd; var LineStarts: PRawImagePosition);
+// LineStarts is recreated, so make sure it is nil or a valid mem
+var
+  PixelCount: cardinal;
+  BitsPerLine: cardinal;
+  CurLine: cardinal;
+  BytesPerLine: cardinal;
+  ExtraBitsPerLine: cardinal;
+  CurBitOffset: cardinal;
+begin
+  // get current size
+  PixelCount:=Width*Height;
+  if PixelCount=0 then exit;
+
+  // calculate BitsPerLine, BytesPerLine and ExtraBitsPerLine
+  BitsPerLine:=GetBitsPerLine(Width,BitsPerPixel,LineEnd);
+  BytesPerLine:=BitsPerLine shr 3;
+  ExtraBitsPerLine:=BitsPerLine and 7;
+
+  // create line start array
+  ReAllocMem(LineStarts,Height*SizeOf(TRawImagePosition));
+  LineStarts[0].Byte:=0;
+  LineStarts[0].Bit:=0;
+  for CurLine:=1 to Height-1 do begin
+    CurBitOffset:=LineStarts[CurLine-1].Bit+ExtraBitsPerLine;
+    LineStarts[CurLine].Byte:=LineStarts[CurLine-1].Byte+BytesPerLine
+                                 +(CurBitOffset shr 3);
+    LineStarts[CurLine].Bit:=CurBitOffset and 7;
   end;
 end;
+{$endif}
 
 {$ifdef OldRawImageProcs}
 procedure ReadRawImageBits(TheData: PByte;
@@ -1139,48 +1391,6 @@ begin
   RawImage_ReadBits(TheData, Position, BitsPerPixel, Prec, Shift, BitOrder, Bits);
 end;
 {$endif}
-  
-procedure RawImage_ReadBits(AData: PByte; const APosition: TRawImagePosition;
-                       ABitsPerPixel, APrec, AShift: Byte;
-                       ABitOrder: TRawImageBitOrder; out ABits: Word);
-var
-  PB: PByte;
-  PW: PWord  absolute PB;
-  PC: PCardinal absolute PB;
-  PrecMask: Word;
-begin
-  PrecMask := (Word(1) shl APrec) - 1;
-  PB := @AData[APosition.Byte];
-  case ABitsPerPixel of
-  1,2,4:
-      begin
-        if ABitOrder = riboBitsInOrder then
-          ABits := (PB^ shr (AShift + APosition.Bit)) and PrecMask
-        else
-          ABits := (PB^ shr (AShift + 7 - APosition.Bit)) and PrecMask;
-      end;
-  8:  begin
-        ABits := (PB^ shr AShift) and PrecMask;
-      end;
-  16: begin
-        {$note check endian and/or source byte order}
-        ABits := (PW^ shr AShift) and PrecMask;
-      end;
-  32: begin
-        {$note check endian and/or source byte order}
-        ABits := (PC^ shr AShift) and PrecMask;
-      end;
-  else
-    ABits:=0;
-  end;
-  
-  if APrec<16
-  then begin
-    // add missing bits
-    ABits := ABits shl (16 - APrec);
-    ABits := ABits or MissingBits[APrec, ABits shr 13];
-  end;
-end;
 
 {$ifdef OldRawImageProcs}
 procedure WriteRawImageBits(TheData: PByte;
@@ -1190,47 +1400,6 @@ begin
   RawImage_WriteBits(TheData, Position, BitsPerPixel, Prec, Shift, BitOrder, Bits);
 end;
 {$endif}
-
-procedure RawImage_WriteBits(AData: PByte; const APosition: TRawImagePosition;
-                       ABitsPerPixel, APrec, AShift: Byte;
-                       ABitOrder: TRawImageBitOrder; ABits: Word);
-var
-  PB: PByte;
-  PW: PWord absolute PB;
-  PC: PCardinal absolute PB;
-  PrecMask: Cardinal;
-  BitShift: Integer;
-begin
-  PB := @AData[APosition.Byte];
-  PrecMask := (Cardinal(1) shl APrec) - 1;
-  ABits := ABits shr (16 - APrec);
-  
-  case ABitsPerPixel of
-  1,2,4:
-      begin
-        if ABitOrder = riboBitsInOrder
-        then BitShift := AShift + APosition.Bit
-        else BitShift := AShift + 7 - APosition.Bit;
-        
-        PrecMask := not(PrecMask shl BitShift);
-        PB^ := (PB^ and PrecMask) or (ABits shl BitShift);
-      end;
-  8:  begin
-        PrecMask := not(PrecMask shl aShift);
-        PB^ := (PB^ and PrecMask) or (ABits shl AShift);
-      end;
-  16: begin
-        {$note check endian and/or source byte order}
-        PrecMask := not(PrecMask shl AShift);
-        PW^ := (PW^ and PrecMask) or (ABits shl AShift);
-      end;
-  32: begin
-        {$note check endian and/or source byte order}
-        PrecMask := not(PrecMask shl AShift);
-        PC^ := (PC^ and PrecMask) or (ABits shl AShift);
-      end;
-  end;
-end;
 
 {$ifdef OldRawImageProcs}
 procedure ReAlignRawImageLines(var Data: Pointer; var Size: PtrUInt;
@@ -1254,7 +1423,7 @@ begin
   NewBytesPerLine:=GetBytesPerLine(Width,BitsPerPixel,NewLineEnd);
   NewSize:=NewBytesPerLine*PtrUInt(Height);
   //DebugLn(['ReAlignRawImageLines OldBytesPerLine=',OldBytesPerLine,' NewBytesPerLine=',NewBytesPerLine]);
-  
+
   // enlarge before
   if OldSize<NewSize then
     ReAllocMem(Data,NewSize);
@@ -1279,16 +1448,15 @@ begin
       System.Move(OldPos^,NewPos^,OldBytesPerLine);
     end;
   end;
-      
+
   // shrink after
   if OldSize>NewSize then
     ReAllocMem(Data,NewSize);
-    
+
   Size:=NewSize;
   OldLineEnd:=NewLineEnd;
 end;
 {$endif}
-
 
 //------------------------------------------------------------------------------
 procedure InternalInit;
