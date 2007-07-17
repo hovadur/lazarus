@@ -395,7 +395,7 @@ end;
  ------------------------------------------------------------------------------}
 procedure FillStandardDescription(out Desc: TRawImageDescription);
 begin
-  FillChar(Desc, SizeOf(Desc), 0);
+  Desc.Init;
 
   Desc.Format := ricfRGBA;
 // Width and Height skipped

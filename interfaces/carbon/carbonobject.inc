@@ -468,7 +468,7 @@ var
   Prec, Shift, BPR: Byte;
   AlphaInfo: CGImageAlphaInfo;
 begin
-  FillChar(ADesc, SizeOf(ADesc), 0);
+  ADesc.Init;
 
   ADesc.Format := ricfRGBA;
   ADesc.Width := ABitmap.Width;
