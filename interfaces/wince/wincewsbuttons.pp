@@ -86,7 +86,7 @@ procedure DrawBitBtnImage(BitBtn: TCustomBitBtn; ButtonCaption: PWideChar);
 
 implementation
 
-uses WinCEInt,WinCEWinAPIEmu;
+uses WinCEInt, WinCEExtra;
 
 
 

@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Classes, LMessages, LCLType, LCLProc, Controls, Forms, Menus,
-  WinCEWinAPIEmu, GraphType;
+  WinCEExtra, GraphType;
   
 Type
   TEventType = (etNotify, etKey, etKeyPress, etMouseWheel, etMouseUpDown);
@@ -1203,7 +1203,7 @@ begin
   New(WindowInfo);
   FillChar(WindowInfo^, sizeof(WindowInfo^), 0);
   WindowInfo^.DrawItemIndex := -1;
-  WinCEWinAPIEmu.SetProp(Window, {PChar(dword(WindowInfoAtom)),} dword(WindowInfo));
+  WinCEExtra.SetProp(Window, {PChar(dword(WindowInfoAtom)),} dword(WindowInfo));
   Result := WindowInfo;
 end;
 
@@ -1211,8 +1211,8 @@ function DisposeWindowInfo(Window: HWND): boolean;
 var
   WindowInfo: PWindowInfo;
 begin
-  WindowInfo := PWindowInfo(WinCEWinAPIEmu.GetProp(Window{, PChar(dword(WindowInfoAtom))}));
-  Result := WinCEWinAPIEmu.RemoveProp(Window{, PChar(dword(WindowInfoAtom))})<>0;
+  WindowInfo := PWindowInfo(WinCEExtra.GetProp(Window{, PChar(dword(WindowInfoAtom))}));
+  Result := WinCEExtra.RemoveProp(Window{, PChar(dword(WindowInfoAtom))})<>0;
   if Result then
   begin
     WindowInfo^.DisabledWindowList.Free;
@@ -1222,7 +1222,7 @@ end;
 
 function GetWindowInfo(Window: HWND): PWindowInfo;
 begin
-  Result := PWindowInfo(WinCEWinAPIEmu.GetProp(Window{, PChar(dword(WindowInfoAtom))}));
+  Result := PWindowInfo(WinCEExtra.GetProp(Window{, PChar(dword(WindowInfoAtom))}));
   if Result = nil then
     Result := @DefaultWindowInfo;
 end;
