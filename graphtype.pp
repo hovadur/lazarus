@@ -600,7 +600,9 @@ end;
 
 function TRawImageDescription.IsEqual(ADescription: TRawImageDescription): Boolean;
 begin
-  Result := CompareMem(@Self, @ADescription, SizeOf(Self));
+  //Result := CompareMem(@Self, @ADescription, SizeOf(Self));
+  {$note Do proper compare}
+  Result := AsString = ADescription.AsString;
 end;
 
 
@@ -962,7 +964,19 @@ end;
 
 function TRawImage.IsEqual(AImage: TRawImage): Boolean;
 begin
-  Result := CompareMem(@Self, @AImage, SizeOf(Self));
+  //Result := CompareMem(@Self, @AImage, SizeOf(Self));
+  Result :=
+    Description.IsEqual(AImage.Description) and
+    (DataSize = AImage.DataSize) and
+    (MaskSize = AImage.MaskSize) and
+    (PaletteSize = AImage.PaletteSize);
+
+  if Result then
+    Result := Result and CompareMem(Data, AImage.Data, DataSize);
+  if Result then
+    Result := Result and CompareMem(Mask, AImage.Mask, MaskSize);
+  if Result then
+    Result := Result and CompareMem(Palette, AImage.Palette, PaletteSize);
 end;
 
 procedure TRawImage.ReleaseData;

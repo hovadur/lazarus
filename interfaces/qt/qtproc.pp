@@ -43,7 +43,7 @@ implementation
  ------------------------------------------------------------------------------}
 procedure FillStandardDescription(var Desc: TRawImageDescription);
 begin
-  FillChar(Desc, SizeOf(Desc), 0);
+  Desc.Init;
 
   Desc.Format := ricfRGBA;
 //  Desc.Width := 0

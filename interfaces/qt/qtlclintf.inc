@@ -274,7 +274,7 @@ begin
   if (AMask <> 0) and not CheckBitmap(AMask, 'RawImage_FromBitmap (mask)') then Exit;
 
 
-  FillChar(ARawImage, SizeOf(ARawImage), 0);
+  ARawImage.Init;
   FillStandardDescription(ARawImage.Description);
   
   Width := ARect.Right - ARect.Left;
