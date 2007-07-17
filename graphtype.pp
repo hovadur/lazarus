@@ -138,6 +138,7 @@ type
     function MaskBitsPerLine: PtrUInt;
 
     function AsString: string;
+    function IsEqual(ADescription: TRawImageDescription): Boolean;
   end;
   PRawImageDescription = ^TRawImageDescription;
   
@@ -506,7 +507,7 @@ end;
 
 function TRawImageDescription.GetDescriptionFromMask: TRawImageDescription;
 begin
-  FillByte(Result, SizeOf(Result), 0);
+  Result.Init;
 
   Result.Format       := ricfGray;
   Result.Width        := Width;
@@ -533,7 +534,7 @@ end;
 
 function TRawImageDescription.GetDescriptionFromAlpha: TRawImageDescription;
 begin
-  FillByte(Result, SizeOf(Result), 0);
+  Result.Init;
 
   Result.Format       := ricfGray;
   Result.Width        := Width;
@@ -595,6 +596,11 @@ begin
     +' PaletteByteOrder='+RawImageByteOrderNames[PaletteByteOrder]
     +' PaletteBytesPerLine->'+IntToStr(GetBytesPerLine(Width,PaletteBitsPerIndex,PaletteLineEnd))
     +'';
+end;
+
+function TRawImageDescription.IsEqual(ADescription: TRawImageDescription): Boolean;
+begin
+  Result := CompareMem(@Self, @ADescription, SizeOf(Self));
 end;
 
 

@@ -2980,9 +2980,9 @@ begin
   if (Src.Width<>Width) or (Src.Height<>Height) then
     SetSize(Src.Width,Src.Height);
 }
-  if (ASource is TLazIntfImage)
-  and CompareMem(@FRawImage.Description, @SrcImg.FRawImage.Description, SizeOf(FRawImage.Description))
-  then begin
+  if (ASource is TLazIntfImage) and
+     FRawImage.Description.IsEqual(SrcImg.FRawImage.Description) then
+  begin
     // same description -> copy
     if FRawImage.Data <> nil then
       System.Move(SrcImg.FRawImage.Data^,FRawImage.Data^,FRawImage.DataSize);

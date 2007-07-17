@@ -182,14 +182,15 @@ end;
 procedure TWin32ThemeServices.DrawIcon(ACanvas: TPersistent;
   Details: TThemedElementDetails; const P: TPoint; AImageList: TPersistent;
   Index: Integer);
-var
+{var
   ImageList: TCustomImageList absolute AImageList;
+}
 begin
-  if ThemesEnabled then
+{  if ThemesEnabled then
     DrawIcon(TCanvas(ACanvas).Handle, Details,
       Rect(P.X, P.Y, P.X + ImageList.Width, P.Y + ImageList.Width),
       ImageList.Handle, Index)
-  else
+  else}
     inherited;
 end;
 

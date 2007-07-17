@@ -624,7 +624,7 @@ begin
   Image.Assign(TBitMap(FImageList.Items[Index]));
   {$else}
   CheckIndex(Index);
-  FillChar(RawImg, SizeOf(RawImg), 0);
+  RawImg.Init;
   FillDescription(RawImg.Description);
   RawImg.DataSize := FWidth * FHeight * SizeOF(FData[0]);
   RawImg.Data := @FData[Index * FWidth * FHeight];
@@ -943,7 +943,7 @@ begin
   SrcImg := TLazIntfImage.Create(AImage, AFreeImage);
   SrcImg.AlphaFromMask;
 
-  FillChar(RawImg, SizeOf(RawImg), 0);
+  RawImg.Init;
   FillDescription(RawImg.Description);
   Result := @FData[AIndex * FWidth * FHeight];
   RawImg.DataSize := FWidth * FHeight * SizeOF(FData[0]);
@@ -1133,7 +1133,7 @@ var
     BeginUpdate;
     try
       IntfImage.GetRawImage(RawImage);
-      FillChar(SubRawImage,SizeOf(SubRawImage),0);
+      SubRawImage.Init;
 
       for Row := 0 to (IntfImage.Height div Height) - 1 do
       begin

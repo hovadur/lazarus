@@ -100,8 +100,8 @@ type
   
   // Some temp rework defines, for old functionality both need so be set
 
-  {.$define IMGLIST_OLDSTYLE}     // Set to keep original functionality
-  {.$define IMGLIST_KEEP_EXTRA}   // Not needed for Delphi compat.
+  {$define IMGLIST_OLDSTYLE}     // Set to keep original functionality
+  {$define IMGLIST_KEEP_EXTRA}   // Not needed for Delphi compat.
 
   {$ifdef IMGLIST_OLDSTYLE}
   // hack to set defines in dependent widgetsets.
