@@ -698,7 +698,7 @@ end;
 
 procedure FillRawImageDescription(const ABitmapInfo: Windows.TBitmap; out ADesc: TRawImageDescription);
 begin
-  FillChar(ADesc, SizeOf(ADesc), 0);
+  ADesc.Init;
 
   ADesc.Format := ricfRGBA;
 

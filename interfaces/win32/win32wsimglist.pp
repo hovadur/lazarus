@@ -89,7 +89,7 @@ begin
   end
   else begin
     // create separate image and mask
-    FillChar(RawImg, SizeOf(RawImg), 0);
+    RawImg.Init;
     AList.FillDescription(RawImg.Description);
     RawImg.DataSize := AWidth * AHeight * SizeOF(AData[0]);
     RawImg.Data := PByte(AData);

@@ -164,7 +164,7 @@ var
 begin
   Result := True;
 
-  FillChar(ADesc, SizeOf(ADesc), 0);
+  ADesc.Init;
 
   if ADC = 0
   then DC := Windows.GetDC(0)
@@ -214,7 +214,7 @@ var
   WinBmp: Windows.TBitmap;
   R: TRect;
 begin
-  FillChar(ARawImage, SizeOf(ARawImage), 0);
+  ARawImage.Init;
   Result := Windows.GetObject(ABitmap, SizeOf(WinBmp), @WinBmp) > 0;
   if not Result then Exit;
 
