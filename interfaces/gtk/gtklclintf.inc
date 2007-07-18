@@ -377,7 +377,7 @@ begin
   {$IFDEF VerboseRawImage}
   DebugLn('TGtkWidgetSet.GetRawImageFromBitmap A');
   {$ENDIF}
-  FillChar(ARawImage, SizeOf(ARawImage), 0);
+  ARawImage.Init;
 
   if not IsValidGDIObject(ABitmap)
   then begin
