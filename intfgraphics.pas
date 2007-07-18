@@ -2717,13 +2717,13 @@ begin
   if FDataOwner then
     ReallocMem(FRawImage.Data, 0);
   FRawImage.DataSize := 0;
-  if FLineStarts <> nil then Dispose(FLineStarts, Done);
+  if FLineStarts <> nil then Dispose(FLineStarts);
   FLineStarts := nil;
   
   if FDataOwner then
     ReallocMem(FRawImage.Mask, 0);
   FRawImage.MaskSize := 0;
-  if FMaskLineStarts <> nil then Dispose(FMaskLineStarts, Done);
+  if FMaskLineStarts <> nil then Dispose(FMaskLineStarts);
   FMaskLineStarts := nil;
   FMaskSet := False;
 end;
@@ -2741,8 +2741,10 @@ begin
 
   FreeData;
 
-  New(FLineStarts, Init(Width, Height, Desc.BitsPerPixel, Desc.LineEnd, Desc.LineOrder));
-  New(FMaskLineStarts, Init(Width, Height, Desc.MaskBitsPerPixel, Desc.MaskLineEnd, Desc.LineOrder));
+  New(FLineStarts);
+  FLineStarts^.Init(Width, Height, Desc.BitsPerPixel, Desc.LineEnd, Desc.LineOrder);
+  New(FMaskLineStarts);
+  FMaskLineStarts^.Init(Width, Height, Desc.MaskBitsPerPixel, Desc.MaskLineEnd, Desc.LineOrder);
 
   FRawImage.CreateData(False);
 end;
@@ -2776,8 +2778,10 @@ begin
   FDataOwner := ADataOwner;
   FCreateAllDataNeeded := False;
   EndUpdate;
-  New(FLineStarts, Init(Width, Height, Desc.BitsPerPixel, Desc.LineEnd, Desc.LineOrder));
-  New(FMaskLineStarts, Init(Width, Height, Desc.MaskBitsPerPixel, Desc.MaskLineEnd, Desc.LineOrder));
+  New(FLineStarts);
+  FLineStarts^.Init(Width, Height, Desc.BitsPerPixel, Desc.LineEnd, Desc.LineOrder);
+  New(FMaskLineStarts);
+  FMaskLineStarts^.Init(Width, Height, Desc.MaskBitsPerPixel, Desc.MaskLineEnd, Desc.LineOrder);
   ChooseGetSetColorFunctions;
 end;
 
@@ -2941,8 +2945,10 @@ begin
     FDataOwner := ADataOwner;
     SetSize(Desc.Width, Desc.Height);
     FCreateAllDataNeeded := False;
-    New(FLineStarts, Init(Width, Height, Desc.BitsPerPixel, Desc.LineEnd, Desc.LineOrder));
-    New(FMaskLineStarts, Init(Width, Height, Desc.MaskBitsPerPixel, Desc.MaskLineEnd, Desc.LineOrder));
+    New(FLineStarts);
+    FLineStarts^.Init(Width, Height, Desc.BitsPerPixel, Desc.LineEnd, Desc.LineOrder);
+    New(FMaskLineStarts);
+    FMaskLineStarts^.Init(Width, Height, Desc.MaskBitsPerPixel, Desc.MaskLineEnd, Desc.LineOrder);
     ChooseGetSetColorFunctions;
   finally
     EndUpdate;

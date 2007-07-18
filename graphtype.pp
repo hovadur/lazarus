@@ -120,7 +120,8 @@ type
     PaletteBitOrder: TRawImageBitOrder;
     PaletteByteOrder: TRawImageByteOrder;
     
-    constructor Init;
+    // don't use a contructor here, it will break compatebility with a record
+    procedure Init;
     
     procedure Init_BPP24_B8G8R8_BIO_TTB(AWidth, AHeight: integer);
     procedure Init_BPP24_B8G8R8_M1_BIO_TTB(AWidth, AHeight: integer);
@@ -163,7 +164,8 @@ type
     Palette: PByte;
     PaletteSize: PtrUInt;
     
-    constructor Init;
+    // don't use a contructor here, it will break compatebility with a record
+    procedure Init;
     procedure CreateData(AZeroMem: Boolean);
 
     procedure FreeData;
@@ -195,8 +197,8 @@ type
   public
     Positions: array of TRawImagePosition;
 
-    constructor Init(AWidth, AHeight: cardinal; ABitsPerPixel: Byte; ALineEnd: TRawImageLineEnd; ALineOrder: TRawImageLineOrder);
-    destructor Done;
+    // don't use a contructor here, it will break compatebility with a record
+    procedure Init(AWidth, AHeight: cardinal; ABitsPerPixel: Byte; ALineEnd: TRawImageLineEnd; ALineOrder: TRawImageLineOrder);
     function GetPosition(x, y: cardinal): TRawImagePosition;
   end;
   PRawImageLineStarts = ^TRawImageLineStarts;
@@ -315,7 +317,7 @@ end;
 
 { TRawImageDescription }
 
-constructor TRawImageDescription.Init;
+procedure TRawImageDescription.Init;
 begin
   FillChar(Self, SizeOf(Self), 0);
 end;
@@ -951,7 +953,7 @@ begin
   PaletteSize:=0;
 end;
 
-constructor TRawImage.Init;
+procedure TRawImage.Init;
 begin
   Description.Init;
   Data := nil;
@@ -1213,12 +1215,6 @@ end;
 
 { TRawImageLineStarts }
 
-destructor TRawImageLineStarts.Done;
-begin
-  // not really needed, but keep the compiler happy
-  SetLength(Positions, 0);
-end;
-
 function TRawImageLineStarts.GetPosition(x, y: cardinal): TRawImagePosition;
 var
   BitOffset: Cardinal;
@@ -1231,7 +1227,7 @@ begin
   Inc(Result.Byte, BitOffset shr 3);
 end;
 
-constructor TRawImageLineStarts.Init(AWidth, AHeight: cardinal; ABitsPerPixel: Byte; ALineEnd: TRawImageLineEnd; ALineOrder: TRawImageLineOrder);
+procedure TRawImageLineStarts.Init(AWidth, AHeight: cardinal; ABitsPerPixel: Byte; ALineEnd: TRawImageLineEnd; ALineOrder: TRawImageLineOrder);
 var
   PixelCount: cardinal;
   BitsPerLine: cardinal;
