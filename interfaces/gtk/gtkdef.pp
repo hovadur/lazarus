@@ -795,9 +795,9 @@ end;
 
 function TDeviceContext.GetPen: PGdiObject;
 begin
-  if CurrentPen=nil then
-    CreateGDIObjectForDC(Self,gdiPen);
-  Result:=CurrentPen;
+  if CurrentPen = nil then
+    CreateGDIObjectForDC(Self, gdiPen);
+  Result := CurrentPen;
 end;
 
 function TDeviceContext.HasGC: Boolean;

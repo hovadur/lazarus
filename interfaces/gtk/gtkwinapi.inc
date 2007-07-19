@@ -7900,7 +7900,7 @@ begin
 
     gdiPen: begin
       Result := HPEN(DevCon.GetPen);// always create, because a valid GDIObject is needed to restore
-      if DevCon.CurrentPen <> GDIObject then Exit;
+      if DevCon.CurrentPen = GDIObject then Exit;
 
       DevCon.CurrentPen := PGDIObject(GDIObj);
       Exclude(DevCon.DCFlags, dcfPenSelected);

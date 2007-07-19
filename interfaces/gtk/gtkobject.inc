@@ -6095,7 +6095,7 @@ begin
     DevCon.SelectedColors:=dcscPen;
   end;
 
-  if dcfPenSelected in TDeviceContext(DC).DCFlags then Exit;
+  if dcfPenSelected in Devcon.DCFlags then Exit;
   Exclude(DevCon.DCFlags,dcfPenInvalid);
   if DevCon.GC = nil then Exit;
   
