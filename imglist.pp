@@ -95,13 +95,13 @@ type
     platforms have a 8bit alpha channel).
 
     NOTE: due to its implementation, the TCustomImageList is not a TBitmap
-    collection. If a fast storage of bitmaps is needed, create your on list!
+    collection. If a fast storage of bitmaps is needed, create your own list!
   }
   
   // Some temp rework defines, for old functionality both need so be set
 
-  {$define IMGLIST_OLDSTYLE}     // Set to keep original functionality
-  {$define IMGLIST_KEEP_EXTRA}   // Not needed for Delphi compat.
+  {.$define IMGLIST_OLDSTYLE}     // Set to keep original functionality
+  {.$define IMGLIST_KEEP_EXTRA}   // Not needed for Delphi compat.
 
   {$ifdef IMGLIST_OLDSTYLE}
   // hack to set defines in dependent widgetsets.
