@@ -39,11 +39,11 @@ interface
 
 const
   lcl_major = 0;
-  lcl_minor = 9;
-  lcl_release = 31;
+  lcl_minor = 99;
+  lcl_release = 0;
   lcl_patch = 0;
   lcl_fullversion = ((lcl_major *  100 + lcl_minor) * 100 + lcl_release) * 100 + lcl_patch;
-  lcl_version = '0.9.31';
+  lcl_version = '0.99.0';
 
 implementation
 
