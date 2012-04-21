@@ -1122,7 +1122,8 @@ begin
   //DebugLn('TCodeCompletionCodeTool.AddLocalVariable E ',InsertTxt,' ');
   SourceChangeCache.Replace(gtNewLine,gtNewLine,InsertPos,InsertPos,InsertTxt);
 
-  if (VariableTypeUnitName<>'') then begin
+  if (VariableTypeUnitName<>'')
+  and (not IsHiddenUsedUnit(PChar(VariableTypeUnitName))) then begin
     if not AddUnitToMainUsesSection(VariableTypeUnitName,'',SourceChangeCache)
     then begin
       debugln(['TCodeCompletionCodeTool.AddLocalVariable AddUnitToMainUsesSection failed']);
@@ -6004,6 +6005,7 @@ begin
         if not InsertAllNewClassParts then
           RaiseException(ctsErrorDuringInsertingNewClassParts);
         if (NewUnitName<>'')
+        and (not IsHiddenUsedUnit(PChar(NewUnitName)))
         and (not AddUnitToMainUsesSection(NewUnitName,'',SourceChangeCache)) then
         begin
           debugln(['TCodeCompletionCodeTool.DeclareVariableNearBy AddUnitToMainUsesSection for new class memeber failed']);
@@ -7847,7 +7849,7 @@ var
   ANodeExt: TCodeTreeNodeExtension;
   ANode: TCodeTreeNode;
 begin
-  Result:=GatherProcNodes(GetFirstClassIdentifier(ClassNode),
+  Result:=GatherProcNodes(ClassNode.FirstChild,
              [phpInUpperCase,phpAddClassName],ExtractClassName(ClassNode,true));
   if RemoveAbstracts then begin
     AnAVLNode:=Result.FindLowest;
@@ -8140,6 +8142,9 @@ begin
   {$ENDIF}
   if CodeCompleteClassNode.Desc in AllClassInterfaces then begin
     // interfaces have no implementations
+    {$IFDEF CTDEBUG}
+    debugln(['TCodeCompletionCodeTool.CreateMissingProcBodies interface ',CodeCompleteClassNode.DescAsString]);
+    {$ENDIF}
     exit(true);
   end;
   
@@ -8149,7 +8154,9 @@ begin
   ClassProcs:=nil;
   ProcBodyNodes:=nil;
   try
+    //debugln(['TCodeCompletionCodeTool.CreateMissingProcBodies get class procs of ',CodeCompleteClassNode.DescAsString]);
     ClassProcs:=GatherClassProcDefinitions(CodeCompleteClassNode,true);
+    //debugln(['TCodeCompletionCodeTool.CreateMissingProcBodies get bodies of ',CodeCompleteClassNode.DescAsString]);
     ProcBodyNodes:=GatherClassProcBodies(CodeCompleteClassNode);
 
     {AnAVLNode:=ClassProcs.FindLowest;

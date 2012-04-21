@@ -4434,7 +4434,7 @@ begin
   Exclude(FStateFlags, sfHideCursor);
   inherited;
   {$IFDEF VerboseFocus}
-  DebugLn(['[TCustomSynEdit.WMKillFocus] A ',Name, ' time=', dbgs(Now*86640)]);
+  DebugLn(['[TCustomSynEdit.WMKillFocus] A ',DbgSName(Self), ' time=', dbgs(Now*86640)]);
   {$ENDIF}
   LastMouseCaret:=Point(-1,-1);
   // Todo: Under Windows, keeping the Caret only works, if no other component creates a caret
@@ -4456,7 +4456,7 @@ begin
   Exclude(FStateFlags, sfHideCursor);
   LastMouseCaret:=Point(-1,-1);
   {$IFDEF VerboseFocus}
-  DebugLn(['[TCustomSynEdit.WMSetFocus] A ',Name,':',ClassName, ' time=', dbgs(Now*86640)]);
+  DebugLn(['[TCustomSynEdit.WMSetFocus] A ',DbgSName(Self), ' time=', dbgs(Now*86640)]);
   {$ENDIF}
   FScreenCaret.DestroyCaret; // Ensure recreation. On Windows only one caret exists, and it must be moved to the focused editor
   FScreenCaret.Visible := not(eoNoCaret in FOptions);
@@ -4512,7 +4512,9 @@ var
   pt: TPoint;
   ScrollHint: THintWindow;
 begin
-  //debugln('TCustomSynEdit.WMVScroll A ',DbgSName(Self),' Msg.ScrollCode=',dbgs(Msg.ScrollCode),' SB_PAGEDOWN=',dbgs(SB_PAGEDOWN),' SB_PAGEUP=',dbgs(SB_PAGEUP));
+  {$IFDEF SYNSCROLLDEBUG}
+  debugln('TCustomSynEdit.WMVScroll A ',DbgSName(Self),' Msg.ScrollCode=',dbgs(Msg.ScrollCode),' SB_PAGEDOWN=',dbgs(SB_PAGEDOWN),' SB_PAGEUP=',dbgs(SB_PAGEUP));
+  {$ENDIF}
   case Msg.ScrollCode of
       // Scrolls to start / end of the text
     SB_TOP: TopView := 1;

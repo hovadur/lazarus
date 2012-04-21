@@ -1328,6 +1328,8 @@ procedure TControl.DoConstrainedResize(var NewLeft, NewTop,
 var
   MinWidth, MinHeight, MaxWidth, MaxHeight : TConstraintSize;
 begin
+  if NewWidth<0 then NewWidth:=0;
+  if NewHeight<0 then NewHeight:=0;
   MinWidth := Constraints.EffectiveMinWidth;
   MinHeight := Constraints.EffectiveMinHeight;
   MaxWidth := Constraints.EffectiveMaxWidth;
@@ -2104,7 +2106,7 @@ begin
               is sent immediately.
 
               Further Note:
-                Under winapi a  LM_LBUTTONDOWN ends the drag immediate.
+                Under winapi a LM_LBUTTONDOWN ends the drag immediate.
               For example: If we exit here, then mouse down on TTreeView does
                 not work any longer under gtk.
             }
@@ -2232,11 +2234,6 @@ end;
 procedure TControl.SetAnchorSide(Kind: TAnchorKind; AValue: TAnchorSide);
 begin
   GetAnchorSide(Kind).Assign(AValue);
-end;
-
-procedure TControl.SetAnchorSide(AIndex: Integer; AValue: TAnchorSide);
-begin
-
 end;
 
 procedure TControl.SetBorderSpacing(const AValue: TControlBorderSpacing);
@@ -3707,10 +3704,12 @@ procedure TControl.SetAlign(Value: TAlign);
 var
   OldAlign: TAlign;
   a: TAnchorKind;
+  OldBaseBounds: TRect;
 begin
   if FAlign = Value then exit;
   //DebugLn(['TControl.SetAlign ',DbgSName(Self),' Old=',DbgS(FAlign),' New=',DbgS(Value),' ',Anchors<>AnchorAlign[FAlign]]);
   DisableAutoSizing{$IFDEF DebugDisableAutoSizing}('TControl.setalign'){$ENDIF};
+  OldBaseBounds:=BaseBounds;
   OldAlign := FAlign;
   FAlign := Value;
   if (not (csLoading in ComponentState))
@@ -3731,7 +3730,7 @@ begin
   if (Anchors = AnchorAlign[OldAlign]) and (Anchors <> AnchorAlign[FAlign]) then
     Anchors := AnchorAlign[FAlign];
   if not (csLoading in ComponentState) then
-    BoundsRect:=BaseBounds;
+    BoundsRect:=OldBaseBounds;
   //DebugLn(['TControl.SetAlign ',DbgSName(Self),' Cur=',DbgS(FAlign),' New=',DbgS(Value),' ',Anchors<>AnchorAlign[FAlign],' Anchors=',dbgs(Anchors)]);
   EnableAutoSizing{$IFDEF DebugDisableAutoSizing}('TControl.setalign'){$ENDIF};
 end;
@@ -3750,7 +3749,13 @@ begin
   for a:=Low(TAnchorKind) to high(TAnchorKind) do
     if (a in NewAnchors) and (AnchorSide[a].Side=asrCenter) then
       AnchorSide[a].FixCenterAnchoring;
-  // UpdateAnchorRules; ToDo: check
+
+  // Delphi Anchors depend on the current bounds of Self and Parent.ClientRect
+  // => fetch current BaseBounds
+  // for example:
+  // during disabled autosizing:  Width:=100; Anchors:=Anchors+[akRight];
+  UpdateAnchorRules;
+
   AdjustSize;
 end;
 
