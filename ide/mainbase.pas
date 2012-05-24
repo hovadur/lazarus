@@ -382,6 +382,7 @@ begin
     CreateMenuItem(ParentMI,itmFileSave,'itmFileSave',lisMenuSave,'laz_save');
     CreateMenuItem(ParentMI,itmFileSaveAs,'itmFileSaveAs',lisMenuSaveAs,'menu_saveas');
     CreateMenuItem(ParentMI,itmFileSaveAll,'itmFileSaveAll',lisSaveAll,'menu_save_all');
+    CreateMenuItem(ParentMI,itmFileExportHtml,'itmFileExportHtml',lisExportHtml);
     CreateMenuItem(ParentMI,itmFileClose,'itmFileClose',lisClose,'menu_close',false);
     CreateMenuItem(ParentMI,itmFileCloseAll,'itmFileCloseAll',lisMenuCloseAll,'menu_close_all',false);
 
@@ -1063,7 +1064,10 @@ const
     if ASection.Count > Index then
       Result := ASection.Items[Index]
     else
+    begin
       Result := RegisterIDEMenuCommand(ASection.GetPath,'Window'+IntToStr(Index)+ASection.Name,'');
+      Result.CreateMenuItem;
+    end;
   end;
 
   procedure ClearMenuItem(ARemainCount: Integer; ASection: TIDEMenuSection); inline;

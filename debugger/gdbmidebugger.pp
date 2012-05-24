@@ -474,6 +474,7 @@ type
     procedure DoBeforeState(const OldState: TDBGState); override;
     procedure DoReadError; override;
     procedure DoWriteError; override;
+    function LineEndPos(const s: string; out LineEndLen: integer): integer; override;
     procedure DoThreadChanged;
     property  TargetPID: Integer read FTargetInfo.TargetPID;
     property  TargetPtrSize: Byte read FTargetInfo.TargetPtrSize;
@@ -4103,11 +4104,9 @@ function TGDBMIDebuggerCommandStartDebugging.DoExecute: Boolean;
             if TrySetMainBrk(mtAddZero,   msNone) then exit;
           end;
         msDefault: begin
+            (* Force mtMain before + 0: gdb 7.4 will pretend to have +0, but fail it later. *)
+            TrySetMainBrk(mtMain,      msNone); // include name
             TrySetMainBrk(mtAddZero,   msNone); // always include +0
-            if  (FTheDebugger.FMainAddrBreak.LineOffsFunction <> 'main')
-            //and (FTheDebugger.FMainAddrBreak.LineOffsFunction <> '_FPC_MAINCRTSTARTUP')
-            then
-              TrySetMainBrk(mtMain,      msNone); // include name
             if TrySetMainBrk(mtEntry,     msTryNameZero) then exit;
             if TrySetMainBrk(mtMainAddr,  msTryZero) then exit;
           end;
@@ -6292,6 +6291,24 @@ begin
   include(FErrorHandlingFlags, ehfGotWriteError);
   if not(ehfDeferReadWriteError in FErrorHandlingFlags)
   then inherited DoWriteError;
+end;
+
+function TGDBMIDebugger.LineEndPos(const s: string; out LineEndLen: integer): integer;
+var
+  l: Integer;
+begin
+  Result := 1;
+  LineEndLen := 0;
+  l := Length(s);
+  while (Result <= l) and not(s[Result] in [#10, #13]) do inc(Result);
+
+  if (Result <= l) then begin
+    LineEndLen := 1;
+    if (Result < l) and (s[Result + 1] in [#10, #13]) and (s[Result] <> s[Result + 1]) then
+      LineEndLen := 2;
+  end
+  else
+    Result := 0;
 end;
 
 procedure TGDBMIDebugger.DoThreadChanged;

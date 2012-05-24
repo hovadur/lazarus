@@ -3812,7 +3812,7 @@ var
   TopY, LineLen, LineHeight: Integer;
   TxtPt: TPoint;
   DCOrigin: TPoint;
-  Foreground: PGDKColor;
+  Foreground, BackgroundColor: PGDKColor;
   CurDx: PInteger;
   CurStr: PChar;
 
@@ -3827,7 +3827,7 @@ var
       while CurCount > 0 do
       begin
         CharLen := UTF8CharacterLength(CurStr);
-        DevCtx.DrawTextWithColors(CurStr, CharLen, CurScreenX, Y, Foreground, nil);
+        DevCtx.DrawTextWithColors(CurStr, CharLen, CurScreenX, Y, Foreground, BackgroundColor);
         inc(CurScreenX, CurDx^);
         inc(CurDx);
         inc(CurStr, CharLen);
@@ -3835,7 +3835,7 @@ var
       end;
     end
     else
-      DevCtx.DrawTextWithColors(Str, Count, X, Y, Foreground, nil);
+      DevCtx.DrawTextWithColors(Str, Count, X, Y, Foreground, BackgroundColor);
   end;
 
 begin
@@ -3853,6 +3853,8 @@ begin
     Result := False;
     exit;
   end;
+
+  BackgroundColor := nil;
 
   // to reduce flickering calculate first and then paint
 
@@ -3890,6 +3892,15 @@ begin
     gdk_draw_rectangle(DevCtx.Drawable, DevCtx.GC, 1,
                        Rect^.Left+DCOrigin.X, Rect^.Top+DCOrigin.Y,
                        Width, Height);
+  end;
+
+
+  if (DevCtx.GDIObjects[gdiBrush] <> nil) and
+   ((Options and ETO_OPAQUE) = 0) and (DevCtx.BkMode = OPAQUE) then
+  //  (Rect = nil) then TODO: see if Rect<> nil is needed
+  begin
+    EnsureGCColor(DC, dccGDIBrushColor, DevCtx.GDIObjects[gdiBrush]^.GDIBrushFill = GDK_SOLID, True);
+    BackGroundColor := @DevCtx.GDIObjects[gdiBrush]^.GDIBrushColor.Color;
   end;
 
   EnsureGCColor(DC, dccCurrentTextColor, True, False);
@@ -5182,6 +5193,9 @@ var
   GDIObject: PGDIObject absolute GDIObj;
   ALogPen: PLogPen absolute Buf;
   AExtLogPen: PExtLogPen absolute Buf;
+  AFont: PPangoLayout;
+  AFontName: String;
+  PangoDesc: PPangoFontDescription;
   i, RequiredSize: Integer;
 begin
   Result := 0;
@@ -5201,13 +5215,32 @@ begin
           Result := SizeOf(GDIObject^.LogFont);
           Exit;
         end;
-        if BufSize >= SizeOf(GDIObject^.LogFont)
-        then begin
+        if BufSize >= SizeOf(GDIObject^.LogFont) then
+        begin
           PLogfont(Buf)^ := GDIObject^.LogFont;
           Result:= SizeOf(TLogFont);
-        end
-        else if BufSize > 0
-        then begin
+          if GDIObject^.LogFont.lfFaceName = 'default' then
+          begin
+            AFontName := GetDefaultFontName;
+
+            if (AFontName = '') or (AFontName = 'default') then
+            begin
+              AFont := GetDefaultGtkFont(False);
+              if PANGO_IS_LAYOUT(AFont) then
+              begin
+                PangoDesc := pango_layout_get_font_description(AFont);
+                if PangoDesc = nil then
+                  PangoDesc := pango_context_get_font_description(pango_layout_get_context(AFont));
+                AFontName := StrPas(pango_font_description_get_family(PangoDesc));
+              end;
+            end;
+
+            if AFontName <> '' then
+              PLogfont(Buf)^.lfFaceName := AFontName;
+          end;
+        end else
+        if BufSize > 0 then
+        begin
           Move(GDIObject^.LogFont,Buf^,BufSize);
           Result:=BufSize;
         end;
@@ -8242,25 +8275,22 @@ end;
 function TGtk2WidgetSet.SetCapture(AHandle: HWND): HWND;
 var
   Widget: PGtkWidget;
-  {$IFNDEF GTK2_USE_OLD_CAPTURE}
   CaptureWidget: PGtkWidget;
-  {$ENDIF}
 begin
   Widget := {%H-}PGtkWidget(AHandle);
   {$IfDef VerboseMouseCapture}
-  DebugLn('TGtk2WidgetSet.SetCapture NewValue=[',GetWidgetDebugReport(Widget),']');
+  DebugLn('TGtk2WidgetSet.SetCapture Widget=[',GetWidgetDebugReport(Widget),'] gtk=[',GetWidgetDebugReport(gtk_grab_get_current),'] MouseCaptureWidget=[',GetWidgetDebugReport(MouseCaptureWidget),']');
   {$EndIf}
 
   // return old capture handle
   Result := GetCapture;
 
-  {$IFDEF GTK2_USE_OLD_CAPTURE}
-  // capture
-  CaptureMouseForWidget(Widget, mctLCL);
-  {$ELSE}
-
-  if Result <> 0 then
+  if Result <> 0 then begin
+    {$IfDef VerboseMouseCapture}
+    DebugLn('TGtk2WidgetSet.SetCapture gtk_grab_remove=[',GetWidgetDebugReport(gtk_grab_get_current),']');
+    {$EndIf}
     gtk_grab_remove(gtk_grab_get_current);
+  end;
 
   MouseCaptureWidget := nil;
 
@@ -8268,13 +8298,39 @@ begin
     exit;
 
   CaptureWidget := GetDefaultMouseCaptureWidget(Widget);
-  if CaptureWidget = nil then exit;
+  if CaptureWidget = nil then begin
+    {$IfDef VerboseMouseCapture}
+    DebugLn('TGtk2WidgetSet.SetCapture GetDefaultMouseCaptureWidget failed for widget=[',GetWidgetDebugReport(Widget),']');
+    {$EndIf}
+    exit;
+  end;
+  {$IfDef VerboseMouseCapture}
+  // ubuntu liboverlay intercepts gtk_grab_add for LCLWinapiClient
+  // ToDo: find out how to grab LCLWinapiClient with ubuntu liboverlay
+  if GtkWidgetIsA(Widget,GTK_TYPE_SCROLLED_WINDOW) then
+  begin
+    debugln(['TGtk2WidgetSet.SetCapture AAA1 is api widget ',
+      ' widget=',GetWidgetClassName(Widget),
+      ' container.container.focus_child=',GetWidgetClassName(PGtkScrolledWindow(Widget)^.container.container.focus_child),
+      ' container.child=',GetWidgetClassName(PGtkScrolledWindow(Widget)^.container.child),
+      '']);
+    debugln(['TGtk2WidgetSet.SetCapture gtk_widget_is_sensitive=',gtk_widget_is_sensitive(CaptureWidget)]);
+    debugln(['TGtk2WidgetSet.SetCapture gtk_widget_has_grab=',gtk_widget_has_grab (CaptureWidget)]);
+    //CaptureWidget:=PGtkScrolledWindow(Widget)^.container;
+  end;
+  {$EndIf}
 
+  {$IfDef VerboseMouseCapture}
+  DebugLn('TGtk2WidgetSet.SetCapture gtk_grab_add=[',GetWidgetDebugReport(CaptureWidget),']');
+  {$EndIf}
   gtk_grab_add(CaptureWidget);
+  {$IfDef VerboseMouseCapture}
+  DebugLn('TGtk2WidgetSet.SetCapture gtk=[',GetWidgetDebugReport(gtk_grab_get_current),']');
+  {$EndIf}
+
   MouseCaptureWidget := CaptureWidget;
   if MouseCaptureWidget<>nil then
     SendMessage(HWnd({%H-}PtrUInt(MouseCaptureWidget)), LM_CAPTURECHANGED, 0, Result);
-  {$ENDIF}
 end;
 
 {------------------------------------------------------------------------------
@@ -9595,6 +9651,7 @@ var
   DevCtx: TGtk2DeviceContext absolute DC;
   DCOrigin: TPoint;
   yOffset: integer;
+  BackGroundColor: PGdkColor;
 begin
   Result := IsValidDC(DC);
   if not Result then Exit;
@@ -9615,9 +9672,17 @@ begin
   DevCtx.SelectedColors := dcscCustom;
   EnsureGCColor(DC, dccCurrentTextColor, True, False);
 
+  BackGroundColor := nil;
+  if (DevCtx.GDIObjects[gdiBrush] <> nil) and (DevCtx.BkMode = OPAQUE) and
+    (DevCtx.CurrentBackColor.Colormap <> nil) then
+  begin
+    EnsureGCColor(DC, dccCurrentBackColor, DevCtx.GDIObjects[gdiBrush]^.GDIBrushFill = GDK_SOLID, True);
+    BackGroundColor := @DevCtx.CurrentBackColor.Color;
+  end;
+
   DevCtx.DrawTextWithColors(Str, Count,
     X + DCOrigin.X, Y + DCOrigin.Y + yOffset,
-    nil, nil);
+    nil, BackGroundColor);
 end;
 
 function TGtk2WidgetSet.UpdateWindow(Handle: HWND): Boolean;

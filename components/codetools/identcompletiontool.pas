@@ -188,6 +188,7 @@ type
     ilcfNeedsEndSemicolon, // after context a semicolon is needed. e.g. 'A| end'
     ilcfNoEndSemicolon,    // no semicolon after. E.g. 'A| else'
     ilcfNeedsEndComma,     // after context a comma is needed. e.g. 'uses sysutil| classes'
+    ilcfNeedsDo,           // after context a 'do' is needed. e.g. 'with Form1| do'
     ilcfIsExpression,      // is expression part of statement. e.g. 'if expr'
     ilcfCanProcDeclaration,// context allows to declare a procedure/method
     ilcfEndOfLine          // atom at end of line
@@ -198,6 +199,7 @@ type
   private
     FContext: TFindContext;
     FContextFlags: TIdentifierListContextFlags;
+    FStartAtom: TAtomPosition;
     FStartAtomBehind: TAtomPosition;
     FStartAtomInFront: TAtomPosition;
     FStartBracketLvl: integer;
@@ -240,10 +242,11 @@ type
                                                           read GetFilteredItems;
     property History: TIdentifierHistoryList read FHistory write SetHistory;
     property Prefix: string read FPrefix write SetPrefix;
+    property StartAtom: TAtomPosition read FStartAtom write FStartAtom;
     property StartAtomInFront: TAtomPosition
-                                 read FStartAtomInFront write FStartAtomInFront;
+                                 read FStartAtomInFront write FStartAtomInFront; // in front of variable, not only of identifier
     property StartAtomBehind: TAtomPosition
-                                   read FStartAtomBehind write FStartAtomBehind;
+                                   read FStartAtomBehind write FStartAtomBehind; // directly behind
     property StartBracketLvl: integer
                                    read FStartBracketLvl write FStartBracketLvl;
     property StartContext: TFindContext read FStartContext write FStartContext;
@@ -809,8 +812,9 @@ var
   function ProtectedNodeIsInAllowedClass: boolean;
   var
     CurClassNode: TCodeTreeNode;
-    p: TFindContext;
+    FoundClassContext: TFindContext;
   begin
+    Result:=false;
     if FICTClassAndAncestors<>nil then begin
       // start of the identifier completion is in a method or class
       // => all protected ancestor classes are allowed as well.
@@ -819,16 +823,14 @@ var
       and (not (CurClassNode.Desc in AllClasses)) do
         CurClassNode:=CurClassNode.Parent;
       if CurClassNode=nil then exit;
-      p:=CreateFindContext(Params.NewCodeTool,CurClassNode);
-      if IndexOfFindContext(FICTClassAndAncestors,@p)>=0 then begin
+      FoundClassContext:=CreateFindContext(Params.NewCodeTool,CurClassNode);
+      if IndexOfFindContext(FICTClassAndAncestors,@FoundClassContext)>=0 then begin
         // this class node is the class or one of the ancestors of the class
         // of the start context of the identifier completion
         exit(true);
       end;
     end;
     //DebugLn(['ProtectedNodeIsInAllowedClass hidden: ',FindContextToString(FoundContext)]);
-
-    Result:=false;
   end;
   
   function PropertyIsOverridenPublicPublish: boolean;
@@ -863,6 +865,7 @@ var
   Node: TCodeTreeNode;
   ProtectedForeignClass: Boolean;
   Lvl: LongInt;
+  NamePos: TAtomPosition;
 begin
   // proceed searching ...
   Result:=ifrProceedSearch;
@@ -887,12 +890,15 @@ begin
   if FoundContext.Tool=Self then begin
     // identifier is in the same unit
     //DebugLn('::: COLLECT IDENT in SELF ',FoundContext.Node.DescAsString,
-    //  ' "',StringToPascalConst(copy(FoundContext.Tool.Src,FoundContext.Node.StartPos,50)),'"'
+    //  ' "',dbgstr(FoundContext.Tool.Src,FoundContext.Node.StartPos,50),'"'
     //  ,' fdfIgnoreUsedUnits='+dbgs(fdfIgnoreUsedUnits in Params.Flags));
-    if FoundContext.Node=CurrentIdentifierList.StartContext.Node then begin
+    if (FoundContext.Node=CurrentIdentifierList.StartContext.Node)
+    or (FoundContext.Node=CurrentIdentifierList.Context.Node)
+    or (FoundContext.Node.StartPos=CurrentIdentifierList.StartAtom.StartPos)
+    then begin
       // found identifier is in cursor node
-      // => show it at the end
-      Lvl:=1000;
+      // => do not show it
+      exit;
     end;
   end else begin
     // identifier is in another unit
@@ -940,6 +946,9 @@ begin
         // generic
         if Node=nil then exit;
         Ident:=@FoundContext.Tool.Src[Node.StartPos];
+      end;
+      if Node=nil then begin
+        // type without definition
       end;
       if (Node<>nil)
       and (Node.Desc in AllClasses)
@@ -995,6 +1004,12 @@ begin
     if (FoundContext.Tool=Self) then begin
       Ident:=@Src[FoundContext.Node.StartPos];
     end;
+
+  ctnUnit,ctnProgram,ctnLibrary,ctnPackage:
+    if (FoundContext.Tool=Self)
+    and GetSourceNamePos(NamePos) then
+      Ident:=@Src[NamePos.StartPos];
+
   end;
   if Ident=nil then exit;
 
@@ -1013,6 +1028,7 @@ begin
   end;
 
   {$IFDEF ShowFoundIdents}
+  if FoundContext.Tool=Self then
   DebugLn('  IDENT COLLECTED: ',NewItem.AsString);
   {$ENDIF}
   
@@ -1607,8 +1623,10 @@ begin
   ctnInitialization:
     if (NodeBehind=nil)
     or (NodeBehind.Desc in [ctnInitialization,ctnFinalization,ctnEndPoint,ctnBeginBlock])
-    then
+    then begin
       Add('finalization');
+      Add('begin');
+    end;
 
   ctnProcedure:
     begin
@@ -1651,6 +1669,23 @@ begin
       end;
       if (Node.Desc=ctnRecordType) or (Node.Parent.Desc=ctnRecordType) then begin
         Add('case');
+      end;
+    end;
+
+  ctnTypeSection,ctnVarSection,ctnConstSection,ctnLabelSection,ctnResStrSection,
+  ctnLibrary,ctnProgram:
+    begin
+      Add('type');
+      Add('const');
+      Add('var');
+      Add('resourcestring');
+      Add('procedure');
+      Add('function');
+      Add('property');
+      if Node.Desc=ctnLibrary then begin
+        Add('initialization');
+        Add('finalization');
+        Add('begin');
       end;
     end;
 
@@ -2169,6 +2204,11 @@ begin
     ParseSourceTillCollectionStart(IdentStartXY,CleanCursorPos,CursorNode,
                                    IdentStartPos,IdentEndPos);
     if CleanCursorPos=0 then ;
+    if IdentStartPos>0 then begin
+      MoveCursorToCleanPos(IdentStartPos);
+      ReadNextAtom;
+      CurrentIdentifierList.StartAtom:=CurPos;
+    end;
 
     // find context
     {$IFDEF CTDEBUG}
@@ -2187,7 +2227,8 @@ begin
         CurrentIdentifierList.ContextFlags:=
           CurrentIdentifierList.ContextFlags+[ilcfNeedsEndComma];
       end;
-    end else if CursorNode.Desc in AllSourceTypes then begin
+    end else if (CursorNode.Desc in AllSourceTypes)
+    and (PositionsInSameLine(Src,CursorNode.StartPos,IdentStartPos)) then begin
       GatherSourceNames(GatherContext);
     end else begin
       FindCollectionContext(Params,IdentStartPos,CursorNode,
@@ -2332,6 +2373,16 @@ begin
             end;
           end;
         end;
+        // check missing 'do' after 'with'
+        if CurrentIdentifierList.StartUpAtomInFrontIs('WITH')
+        and (not CurrentIdentifierList.StartUpAtomBehindIs('DO'))
+        and (CurrentIdentifierList.StartBracketLvl=0)
+        and (not (CurrentIdentifierList.StartAtomBehind.Flag in
+               [cafComma,cafPoint,cafRoundBracketOpen,cafEdgedBracketOpen]))
+        and (not CurrentIdentifierList.StartUpAtomBehindIs('^'))
+        then
+          CurrentIdentifierList.ContextFlags:=
+            CurrentIdentifierList.ContextFlags+[ilcfNeedsDo];
       end else begin
         // end of source
         CurrentIdentifierList.ContextFlags:=

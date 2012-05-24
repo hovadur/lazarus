@@ -185,10 +185,11 @@ const
       ctnEnumIdentifier,ctnLabelType,ctnTypeType,ctnFileType,ctnPointerType,
       ctnClassOfType,ctnVariantType,ctnConstant];
   AllPascalStatements = [ctnBeginBlock,ctnWithStatement,ctnWithVariable,
-                         ctnOnBlock,ctnOnIdentifier,ctnOnStatement];
+                         ctnOnBlock,ctnOnIdentifier,ctnOnStatement,
+                         ctnInitialization,ctnFinalization];
   AllFindContextDescs = AllIdentifierDefinitions + AllCodeSections + AllClasses +
      [ctnProcedure];
-  AllPointContexts = AllClasses+AllSourceTypes+[ctnEnumerationType,ctnInterface];
+  AllPointContexts = AllClasses+AllSourceTypes+[ctnEnumerationType,ctnInterface,ctnImplementation];
 
 
   // CodeTreeNodeSubDescriptors

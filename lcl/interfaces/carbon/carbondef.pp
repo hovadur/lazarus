@@ -1,5 +1,4 @@
-{ $Id$
-                    -----------------------------------------
+{                   -----------------------------------------
                     carbondef.pp  -  Type & Const definitions
                     -----------------------------------------
 
@@ -37,9 +36,7 @@ uses
   // libs
   MacOSAll,
   // wdgetset
-  WSLCLClasses, LCLClasses,
-  // LCL + RTL
-  Types, Classes, SysUtils, Controls, LCLType, LCLProc, Graphics, Math, Contnrs,
+  WSLCLClasses, Classes, SysUtils, Controls, LCLType, LCLProc, Graphics, Contnrs,
   AVL_Tree, LMessages, LCLMessageGlue;
 
 var
@@ -67,6 +64,7 @@ type
     FProperties: TStringList;
     FCursor: HCURSOR;
     FHasCaret: Boolean;
+    FHasPaint: Boolean;
     FResizing: Boolean;
     FBoundsReported: Boolean;
     function GetPainting: Boolean;
@@ -95,9 +93,9 @@ type
     procedure FocusKilled; virtual;
     procedure BoundsChanged; virtual;
     procedure ControlAdded; virtual;
-    function FilterKeyPress(SysKey: Boolean; const Char: TUTF8Char): Boolean; virtual;
-    procedure ProcessKeyEvent(const msg: TLMKey); virtual;
-    function NeedDeliverMouseEvent(Msg: Integer; const AMessage): Boolean; virtual;
+    function FilterKeyPress({%H-}SysKey: Boolean; const {%H-}Char: TUTF8Char): Boolean; virtual;
+    procedure ProcessKeyEvent(const {%H-}msg: TLMKey); virtual;
+    function NeedDeliverMouseEvent({%H-}Msg: Integer; const {%H-}AMessage): Boolean; virtual;
   public
     constructor Create(const AObject: TWinControl; const AParams: TCreateParams);
     destructor Destroy; override;
@@ -109,14 +107,14 @@ type
     function GetTopParentWindow: WindowRef; virtual; abstract;
     procedure Invalidate(Rect: PRect = nil); virtual; abstract;
     procedure InvalidateRgn(AShape: HISHapeRef);
-    function IsDesignInteractive(const P: TPoint): Boolean; virtual;
+    function IsDesignInteractive(const {%H-}P: TPoint): Boolean; virtual;
     function IsEnabled: Boolean; virtual; abstract;
     function IsVisible: Boolean; virtual; abstract;
     function Enable(AEnable: Boolean): Boolean; virtual; abstract;
     
     function GetNextFocus(Start: TCarbonWidget; Next: Boolean): ControlRef;
-    procedure GetScrollInfo(SBStyle: Integer; var ScrollInfo: TScrollInfo); virtual;
-    function GetScrollbarVisible(SBStyle: Integer): Boolean; virtual;
+    procedure GetScrollInfo({%H-}SBStyle: Integer; var {%H-}ScrollInfo: TScrollInfo); virtual;
+    function GetScrollbarVisible({%H-}SBStyle: Integer): Boolean; virtual;
     function GetBounds(var ARect: TRect): Boolean; virtual; abstract;
     function GetScreenBounds(var ARect: TRect): Boolean; virtual; abstract;
     function SetBounds(const ARect: TRect): Boolean; virtual; abstract;
@@ -125,9 +123,10 @@ type
     procedure SetCursor(ACursor: HCURSOR); virtual;
     
     procedure ScrollBy(DX, DY: Integer); virtual;
+    procedure ScrollRect(DX, DY: Integer; ARect: TRect); virtual;
     procedure SetFocus; virtual; abstract;
     procedure SetColor(const AColor: TColor); virtual; abstract;
-    function SetScrollInfo(SBStyle: Integer; const ScrollInfo: TScrollInfo): Integer; virtual;
+    function SetScrollInfo({%H-}SBStyle: Integer; const {%H-}ScrollInfo: TScrollInfo): Integer; virtual;
     procedure SetFont(const AFont: TFont); virtual; abstract;
     procedure ShowHide(AVisible: Boolean); virtual; abstract;
     
@@ -148,6 +147,7 @@ type
     property Cursor: HCURSOR read FCursor;
     property ScrollOffset: TPoint read GetScrollOffset write SetScrollOffset; // scrolled offset of  ScrollingWinControl
     property HasCaret: Boolean read FHasCaret write FHasCaret;
+    property HasPaint: Boolean read FHasPaint write FHasPaint;
     property Painting: Boolean read GetPainting;
     property Properties[AIndex: String]: Pointer read GetProperty write SetProperty;
     property Resizing: Boolean read FResizing write FResizing;
@@ -483,8 +483,8 @@ var
   ClientChanged: Boolean;
 begin
   if not Resizing then begin
-    GetBounds(R);
-    GetClientRect(ClientR);
+    GetBounds(R{%H-});
+    GetClientRect(ClientR{%H-});
     LCLR:=LCLObject.BoundsRect;
     LCLClientR:=LCLObject.ClientRect;
     RChanged:=not CompareRect(@R,@LCLR);
@@ -569,7 +569,7 @@ begin
     DebugLn('TCarbonWidget.BoundsChanged ' + LCLObject.Name);
   {$ENDIF}
 
-  GetBounds(WidgetBounds);
+  GetBounds(WidgetBounds{%H-});
   OldBounds := LCLObject.BoundsRect;
   
   {$IFDEF VerboseBounds}
@@ -709,6 +709,7 @@ begin
   Widget := nil;
   Context := nil;
   FHasCaret := False;
+  FHasPaint := False;
   FResizing := False;
   FBoundsReported := False;
   
@@ -769,9 +770,9 @@ var
 const
   SName = 'GetMousePos';
 begin
-  GetGlobalMouse(P);
+  GetGlobalMouse(P{%H-});
 
-  OSError(GetWindowBounds(GetTopParentWindow, kWindowStructureRgn, R),
+  OSError(GetWindowBounds(GetTopParentWindow, kWindowStructureRgn, R{%H-}),
     Self, SName, SGetWindowBounds);
   Result:=GetWindowRelativePos(P.h - R.left, P.v - R.top);
 end;
@@ -882,12 +883,14 @@ end;
 procedure TCarbonWidget.GetScrollInfo(SBStyle: Integer;
   var ScrollInfo: TScrollInfo);
 begin
+  // ToDo: TCarbonWidget.GetScrollInfo
   DebugLn(ClassName + '.GetScrollInfo unsupported or not implemented!');
 end;
 
 function TCarbonWidget.GetScrollbarVisible(SBStyle: Integer): Boolean;
 begin
   Result := False;
+  // ToDo TCarbonWidget.GetScrollbarVisible
   DebugLn(ClassName + '.GetScrollbarVisible unsupported or not implemented!');
 end;
 
@@ -967,7 +970,7 @@ var
 const
   SName = 'ScrollBy';
 begin
-  OSError(HIViewGetBounds(Content, R),
+  OSError(HIViewGetBounds(Content, R{%H-}),
     Self, SName, 'HIViewGetBounds');
   OSError(HIViewSetBoundsOrigin(Content, R.origin.x - DX, R.origin.y - DY),
     Self, SName, 'HIViewSetBoundsOrigin');
@@ -976,6 +979,23 @@ begin
     X := X + DX;
     Y := Y + DY;
   end;
+end;
+
+{------------------------------------------------------------------------------
+  Method:  TCarbonWidget.ScrollRect
+  Params:  DX, DY
+
+  Scrolls the content delimited by a bounding Rect
+ ------------------------------------------------------------------------------}
+procedure TCarbonWidget.ScrollRect(DX, DY: Integer; ARect: TRect);
+var
+  R: CGRect;
+const
+  SName = 'ScrollRect';
+begin
+  R := RectToCGRect(ARect);
+  OSError(HIViewScrollRect(Content, @R, DX, DY),
+	Self, SName, 'HIViewScrollRect');
 end;
 
 {------------------------------------------------------------------------------
@@ -990,6 +1010,7 @@ function TCarbonWidget.SetScrollInfo(SBStyle: Integer;
   const ScrollInfo: TScrollInfo): Integer;
 begin
   Result := 0;
+  // ToDo: TCarbonWidget.SetScrollInfo
   DebugLn(ClassName + '.SetScrollInfo unsupported or not implemented!');
 end;
 

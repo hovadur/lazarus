@@ -470,13 +470,9 @@ function TranslateGdkPointToClientArea(SourceWindow: PGdkWindow;
 function SubtractScoll(AWidget: PGtkWidget; APosition: TPoint): TPoint;
 
 // mouse capturing
-{$IFDEF GTK2_USE_OLD_CAPTURE}
-procedure CaptureMouseForWidget(Widget: PGtkWidget; Owner: TMouseCaptureType);
-{$ENDIF}
 function GetDefaultMouseCaptureWidget(Widget: PGtkWidget): PGtkWidget;
 procedure ReleaseMouseCapture;
 procedure ReleaseCaptureWidget(Widget : PGtkWidget);
-procedure UpdateMouseCaptureControl;
 
 
 const
@@ -663,7 +659,7 @@ procedure SaveClientSizeNotification(FixWidget: PGtkWidget);
 procedure SendSizeNotificationToLCL(aWidget: PGtkWidget);
 function CreateTopologicalSortedWidgets(HashArray: TDynHashArray): TFPList;
 procedure GetGTKDefaultWidgetSize(AWinControl: TWinControl;
-  var PreferredWidth, PreferredHeight: integer; WithThemeSpace: Boolean);
+  var PreferredWidth, PreferredHeight: integer; {%H-}WithThemeSpace: Boolean);
 procedure SendCachedGtkResizeNotifications;
 procedure ResizeHandle(LCLControl: TWinControl);
 procedure SetWidgetSizeAndPosition(LCLControl: TWinControl);// for child controls

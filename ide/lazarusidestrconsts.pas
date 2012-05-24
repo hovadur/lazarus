@@ -61,6 +61,7 @@ resourcestring
   lisDlgSave = 'Save ...';
   lisSaveAs = 'Save As';
   lisSaveAll = 'Save All';
+  lisExportHtml = 'Export as HTML';
   lisCloseAll = 'Close All';
   lisFile = 'File';
   lisNew = 'New';
@@ -1830,6 +1831,7 @@ resourcestring
   dlgWRDPreview = 'Preview';
   dlgAddSemicolon = 'Add semicolon';
   dlgAddAssignmentOperator = 'Add assignment operator :=';
+  lisAddKeywordDo = 'Add keyword "do"';
 
   dlgUserSchemeError = 'Failed to load user-scheme file %s';
 
@@ -3211,9 +3213,10 @@ resourcestring
   lisCodeTemplComment = 'Comment:';
   lisCodeTemplATokenAlreadyExists = ' A token %s%s%s already exists! ';
   lisCodeTemplError = 'Error';
+  lisUnableToFindTheComponentClassItIsNotRegisteredViaR = 'Unable to find the '
+    +'component class "%s".%sIt is not registered via RegisterClass and no lfm'
+    +' was found.%sIt is needed by unit:%s%s';
   lisNoTemplateSelected = 'no template selected';
-  lisUnableToFindTheLfmFileOfComponentClassNeededByUnit = 'Unable to find the '
-    +'lfm file of component class "%s".%sNeeded by unit:%s%s';
   lisUnableToOpenDesignerTheClassDoesNotDescendFromADes = 'Unable to open '
     +'designer.%sThe class %s does not descend from a designable class like '
     +'TForm or TDataModule.';
@@ -4614,6 +4617,7 @@ resourcestring
   rsAddInverse = 'Add Inverse';
   lisAutomaticallyOnLineBreak = 'line break';
   lisAutomaticallyOnSpace = 'space';
+  lisAutomaticallyOnTab = 'tab';
   lisAutomaticallyOnWordEnd = 'word end';
   lisAutomaticallyIgnoreForSelection = 'do not complete selection';
   lisAutomaticallyRemoveCharacter = 'do not add character';
@@ -5432,6 +5436,7 @@ resourcestring
 
   //Registers dialog
   regdlgDisplayTypeForSelectedRegisters = 'Display type for selected Registers';
+  regdlgFormat = 'Format';
   regdlgHex = 'Hex';
   regdlgDecimal = 'Decimal';
   regdlgOctal = 'Octal';

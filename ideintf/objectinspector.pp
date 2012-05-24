@@ -396,8 +396,7 @@ type
     procedure SetIdleEvent(Enable: boolean);
 
     procedure WMVScroll(var Msg: TLMScroll); message LM_VSCROLL;
-    procedure WMMouseWheel(var Message: TLMMouseEvent); message
-                   LM_MOUSEWHEEL;
+    procedure WMMouseWheel(var Message: TLMMouseEvent); message LM_MOUSEWHEEL;
     procedure SetBackgroundColor(const AValue: TColor);
     procedure SetReferences(const AValue: TColor);
     procedure SetSubPropertiesColor(const AValue: TColor);
@@ -443,7 +442,7 @@ type
     function TopMax: integer;
     procedure BuildPropertyList(OnlyIfNeeded: boolean = false);
     procedure Clear;
-    procedure Paint;  override;
+    procedure Paint; override;
     procedure PropEditLookupRootChange;
     procedure RefreshPropertyValues;
     procedure ScrollToActiveItem;
@@ -1078,14 +1077,17 @@ end;
 
 procedure TOICustomPropertyGrid.WMMouseWheel(var Message: TLMMouseEvent);
 begin
-  // -1 : scroll by page
-  if Mouse.WheelScrollLines=-1
-    then TopY := TopY -
-              (Message.WheelDelta * (ClientHeight - DefaultItemHeight)) div 120
+  if Mouse.WheelScrollLines=-1 then
+  begin
+    // -1 : scroll by page
+    TopY := TopY -
+              (Message.WheelDelta * (ClientHeight - DefaultItemHeight)) div 120;
+  end else begin
     // scrolling one line -> scroll half an item, see SB_LINEDOWN and SB_LINEUP
-    // handler in WMVScrol
-    else TopY := TopY -
-              (Message.WheelDelta * Mouse.WheelScrollLines*DefaultItemHeight) div 240;
+    // handler in WMVScroll
+    TopY := TopY -
+        (Message.WheelDelta * Mouse.WheelScrollLines*DefaultItemHeight) div 240;
+  end;
   Message.Result := 1;
 end;
 

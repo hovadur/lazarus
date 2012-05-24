@@ -3824,6 +3824,10 @@ msgstr ""
 msgid "Additional compiler options inherited from packages"
 msgstr "Paketlerden miras alınan ilave derleyici seçenekleri"
 
+#: lazarusidestrconsts.lisaddkeyworddo
+msgid "Add keyword \"do\""
+msgstr ""
+
 #: lazarusidestrconsts.lisaddnewbuildmodecopyingsettingsfrom
 msgid "Add new build mode, copying settings from \"%s\""
 msgstr ""
@@ -11715,6 +11719,10 @@ msgstr "%s - (yeni proje)"
 msgid "New setting"
 msgstr ""
 
+#: lazarusidestrconsts.lisnewthegnudebuggerthroughsshallowstoremotedebugviaassh
+msgid "The GNU debugger through ssh allows to remote debug via a ssh connection. See docs/RemoteDebugging.txt for details. The path must contain the ssh client.Use SSH_Startup_Options for the hostname and optional username.And Remote_GDB_Exe for the filename of gdb on the remote computer."
+msgstr ""
+
 #: lazarusidestrconsts.lisnewunitsareaddedtousessections
 msgid "New units are added to uses sections"
 msgstr ""
@@ -15191,10 +15199,6 @@ msgstr ""
 msgid "The Free Pascal source directory was not found.%sSome code functions will not work.%sIt is recommended that you install it and set the path%sTools -> Options -> Files"
 msgstr ""
 
-#: lazarusidestrconsts.listhegnudebuggerthroughsshallowstoremotedebugviaassh
-msgid "The GNU debugger through ssh allows to remote debug via a ssh connection. See docs/RemoteDebugging.txt for details. The path must contain the ssh client filename, the hostname with an optional username and the filename of gdb on the remote computer. For example: %s/usr/bin/ssh username@hostname gdb%s or: %s/usr/bin/setsid /usr/bin/ssh username@hostname gdb%s"
-msgstr ""
-
 #: lazarusidestrconsts.listheidentifierisaunitpleaseusethefilesaveasfunction
 msgid "The identifier is a unit. Please use the File - Save as function to rename a unit."
 msgstr ""
@@ -15902,8 +15906,8 @@ msgstr ""
 msgid "Unable to find pascal unit (.pas,.pp) for .lfm file%s%s%s%s"
 msgstr ""
 
-#: lazarusidestrconsts.lisunabletofindthelfmfileofcomponentclassneededbyunit
-msgid "Unable to find the lfm file of component class \"%s\".%sNeeded by unit:%s%s"
+#: lazarusidestrconsts.lisunabletofindthecomponentclassitisnotregisteredviar
+msgid "Unable to find the component class \"%s\".%sIt is not registered via RegisterClass and no lfm was found.%sIt is needed by unit:%s%s"
 msgstr ""
 
 #: lazarusidestrconsts.lisunabletogathereditorchanges
@@ -16471,6 +16475,10 @@ msgstr ""
 msgid "Expression"
 msgstr ""
 
+#: lazarusidestrconsts.liswlinspectpane
+msgid "Inspect pane"
+msgstr ""
+
 #: lazarusidestrconsts.liswlproperties
 msgid "&Properties"
 msgstr "Özellikler"
@@ -16552,6 +16560,10 @@ msgstr ""
 
 #: lazarusidestrconsts.regdlgdisplaytypeforselectedregisters
 msgid "Display type for selected Registers"
+msgstr ""
+
+#: lazarusidestrconsts.regdlgformat
+msgid "Format"
 msgstr ""
 
 #: lazarusidestrconsts.regdlghex
@@ -17770,6 +17782,16 @@ msgctxt "lazarusidestrconsts.srkmecsynpsyncroednextcellsel"
 msgid "Next Cell (all selected)"
 msgstr ""
 
+#: lazarusidestrconsts.srkmecsynpsyncroednextfirstcell
+msgctxt "lazarusidestrconsts.srkmecsynpsyncroednextfirstcell"
+msgid "Next Cell (firsts only)"
+msgstr ""
+
+#: lazarusidestrconsts.srkmecsynpsyncroednextfirstcellsel
+msgctxt "lazarusidestrconsts.srkmecsynpsyncroednextfirstcellsel"
+msgid "Next Cell (all selected / firsts only)"
+msgstr ""
+
 #: lazarusidestrconsts.srkmecsynpsyncroedprevcell
 msgctxt "lazarusidestrconsts.srkmecsynpsyncroedprevcell"
 msgid "Previous Cell"
@@ -17778,6 +17800,16 @@ msgstr ""
 #: lazarusidestrconsts.srkmecsynpsyncroedprevcellsel
 msgctxt "lazarusidestrconsts.srkmecsynpsyncroedprevcellsel"
 msgid "Previous Cell (all selected)"
+msgstr ""
+
+#: lazarusidestrconsts.srkmecsynpsyncroedprevfirstcell
+msgctxt "lazarusidestrconsts.srkmecsynpsyncroedprevfirstcell"
+msgid "Previous Cell (firsts only)"
+msgstr ""
+
+#: lazarusidestrconsts.srkmecsynpsyncroedprevfirstcellsel
+msgctxt "lazarusidestrconsts.srkmecsynpsyncroedprevfirstcellsel"
+msgid "Previous Cell (all selected / firsts only)"
 msgstr ""
 
 #: lazarusidestrconsts.srkmecsynpsyncroedstart
@@ -17825,6 +17857,24 @@ msgstr ""
 msgid "Next Cell (rotate / all selected)"
 msgstr ""
 
+#: lazarusidestrconsts.srkmecsynptmplednextfirstcell
+msgctxt "lazarusidestrconsts.srkmecsynptmplednextfirstcell"
+msgid "Next Cell (firsts only)"
+msgstr ""
+
+#: lazarusidestrconsts.srkmecsynptmplednextfirstcellrotate
+msgid "Next Cell (rotate / firsts only)"
+msgstr ""
+
+#: lazarusidestrconsts.srkmecsynptmplednextfirstcellsel
+msgctxt "lazarusidestrconsts.srkmecsynptmplednextfirstcellsel"
+msgid "Next Cell (all selected / firsts only)"
+msgstr ""
+
+#: lazarusidestrconsts.srkmecsynptmplednextfirstcellselrotate
+msgid "Next Cell (rotate / all selected / firsts only)"
+msgstr ""
+
 #: lazarusidestrconsts.srkmecsynptmpledprevcell
 msgctxt "lazarusidestrconsts.srkmecsynptmpledprevcell"
 msgid "Previous Cell"
@@ -17833,6 +17883,16 @@ msgstr ""
 #: lazarusidestrconsts.srkmecsynptmpledprevcellsel
 msgctxt "lazarusidestrconsts.srkmecsynptmpledprevcellsel"
 msgid "Previous Cell (all selected)"
+msgstr ""
+
+#: lazarusidestrconsts.srkmecsynptmpledprevfirstcell
+msgctxt "lazarusidestrconsts.srkmecsynptmpledprevfirstcell"
+msgid "Previous Cell (firsts only)"
+msgstr ""
+
+#: lazarusidestrconsts.srkmecsynptmpledprevfirstcellsel
+msgctxt "lazarusidestrconsts.srkmecsynptmpledprevfirstcellsel"
+msgid "Previous Cell (all selected / firsts only)"
 msgstr ""
 
 #: lazarusidestrconsts.srkmecsyntaxcheck

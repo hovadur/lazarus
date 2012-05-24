@@ -54,6 +54,7 @@ uses
   SynEditMiscClasses, SynEditMarkupHighAll, SynEditMarks,
   SynBeautifier, SynEditTextBase, LazSynEditText,
   SynPluginSyncronizedEditBase, SourceSynEditor, SynMacroRecorder,
+  SynExportHTML,
   // Intf
   SrcEditorIntf, MenuIntf, LazIDEIntf, PackageIntf, IDEHelpIntf, IDEImagesIntf,
   IDEWindowIntf, ProjectIntf,
@@ -417,6 +418,8 @@ type
     procedure CopyToClipboard; override;
     procedure CutToClipboard; override;
 
+    procedure ExportAsHtml(AFileName: String);
+
     // context help
     procedure FindHelpForSourceAtCursor;
 
@@ -653,6 +656,8 @@ type
     // hintwindow stuff
     FHintWindow: THintWindow;
     FMouseHintTimer: TIdleTimer;
+    FMouseHideHintTimer: TTimer;
+    FHintMousePos: TPoint;
 
     procedure Activate; override;
     procedure CreateNotebook;
@@ -696,6 +701,7 @@ type
     procedure NotebookEndDrag(Sender, Target: TObject; X,Y: Integer);
     // hintwindow stuff
     procedure HintTimer(Sender: TObject);
+    procedure HideHintTimer(Sender: TObject);
     procedure OnApplicationUserInput(Sender: TObject; Msg: Cardinal);
     procedure ShowSynEditHint(const MousePos: TPoint);
 
@@ -741,7 +747,6 @@ type
 
     // editor page history
     procedure HistorySetMostRecent(APage: TTabSheet);
-    procedure HistoryAdd(APage: TTabSheet);
     procedure HistoryRemove(APage: TTabSheet);
     function  HistoryGetTopPageIndex: Integer;
 
@@ -2806,6 +2811,10 @@ var a,x,y:integer;
 begin
   if FAOwner<>nil then
     TSourceNotebook(FAOwner).UpdateStatusBar;
+
+  CenterCursor(True);
+  CenterCursorHoriz(hcmSoftKeepEOL);
+
   AText:=Format(lisUEReplaceThisOccurrenceOfWith, ['"', ASearch, '"', #13, '"',
     AReplace, '"']);
 
@@ -2974,13 +2983,23 @@ begin
       end;
     end;
 
+  ecTab:
+    begin
+      AddChar:=true;
+      if AutoCompleteChar(aChar,AddChar,acoTab) then begin
+        // completed
+      end;
+      if not AddChar then Command:=ecNone;
+    end;
+
   ecChar:
     begin
       AddChar:=true;
       //debugln(['TSourceEditor.ProcessCommand AChar="',AChar,'" AutoIdentifierCompletion=',dbgs(EditorOpts.AutoIdentifierCompletion),' Interval=',SourceCompletionTimer.Interval,' ',Dbgs(FEditor.CaretXY),' ',FEditor.IsIdentChar(aChar)]);
       if (aChar=' ') and AutoCompleteChar(aChar,AddChar,acoSpace) then begin
         // completed
-      end else if (not FEditor.IsIdentChar(aChar))
+      end
+      else if (not FEditor.IsIdentChar(aChar))
       and AutoCompleteChar(aChar,AddChar,acoWordEnd) then begin
         // completed
       end else if CodeToolsOpts.IdentComplAutoStartAfterPoint then begin
@@ -3663,6 +3682,20 @@ begin
   FEditor.CutToClipboard;
 end;
 
+procedure TSourceEditor.ExportAsHtml(AFileName: String);
+var
+  Html: TSynExporterHTML;
+begin
+  Html := TSynExporterHTML.Create(nil);
+  Html.Clear;
+  Html.ExportAsText := True;
+  Html.Highlighter := FEditor.Highlighter;
+  Html.Title := PageName;
+  Html.ExportAll(FEditor.Lines);
+  Html.SaveToFile(AFileName);
+  Html.Free;
+end;
+
 procedure TSourceEditor.FindHelpForSourceAtCursor;
 begin
   //DebugLn('TSourceEditor.FindHelpForSourceAtCursor A');
@@ -3889,6 +3922,9 @@ begin
     //DebugLn(['TSourceEditor.AutoCompleteChar ',AToken,' SrcToken=',SrcToken,' CatName=',CatName,' Index=',Manager.CodeTemplateModul.CompletionAttributes[i].IndexOfName(CatName)]);
     if (AnsiCompareText(AToken,SrcToken)=0)
     and (Manager.CodeTemplateModul.CompletionAttributes[i].IndexOfName(CatName)>=0)
+    and ( (not FEditor.SelAvail) or
+          (Manager.CodeTemplateModul.CompletionAttributes[i].IndexOfName(
+             AutoCompleteOptionNames[acoIgnoreForSelection]) < 0)  )
     then begin
       Result:=true;
       //DebugLn(['TSourceEditor.AutoCompleteChar ',AToken,' SrcToken=',SrcToken,' CatName=',CatName,' Index=',Manager.CodeTemplateModul.CompletionAttributes[i].IndexOfName(CatName)]);
@@ -4994,6 +5030,7 @@ end;
 
 function TSourceEditor.GetOperandFromCaret(const ACaretPos: TPoint): String;
 begin
+  UpdateCodeBuffer;
   if not CodeToolBoss.GetExpandedOperand(CodeBuffer, ACaretPos.X, ACaretPos.Y,
     Result, False)
   then
@@ -5131,6 +5168,15 @@ begin
     OnTimer := @HintTimer;
   end;
 
+  // Track mouse movements outside the IDE, if hint is visible
+  FMouseHideHintTimer := TTimer.Create(Self);
+  with FMouseHideHintTimer do begin
+    Name:=Self.Name+'_MouseHintHideTimer';
+    Interval := 500;
+    Enabled := False;
+    OnTimer  := @HideHintTimer;
+  end;
+
   // HintWindow
   FHintWindow := THintWindow.Create(Self);
   with FHintWindow do begin
@@ -5169,6 +5215,7 @@ begin
 
   Application.RemoveOnUserInputHandler(@OnApplicationUserInput);
   FreeThenNil(FMouseHintTimer);
+  FreeThenNil(FMouseHideHintTimer);
   FreeThenNil(FHintWindow);
   FreeAndNil(FNotebook);
 
@@ -5518,9 +5565,8 @@ begin
       // add recent tabs. skip 0 since that is the active tab
       for i := 1 to Min(10, FHistoryList.Count-1) do
       begin
-        //HistoryGetTopPageIndex;
-        EditorCur := FindSourceEditorWithPageIndex(TTabSheet(FHistoryList[i]).PageIndex);
-        if not EditorCur.FEditor.HandleAllocated then continue; // show only if it was visited
+        EditorCur := FindSourceEditorWithPageIndex(FNotebook.IndexOf(TCustomPage(FHistoryList[i])));
+        if (EditorCur = nil) or (not EditorCur.FEditor.HandleAllocated) then continue; // show only if it was visited
         AddEditorToMenuSection(EditorCur, RecMenu, i);
         RecMenu.Visible := True;
       end;
@@ -6275,18 +6321,17 @@ begin
     FNotebook.Visible := True;
     NotebookPages[Index] := S;
   end;
-  HistoryAdd(FNotebook.Pages[Index]);
   UpdateTabsAndPageTitle;
 end;
 
 procedure TSourceNotebook.NoteBookDeletePage(APageIndex: Integer);
 begin
+  HistoryRemove(FNotebook.Pages[APageIndex]);
   if PageCount > 1 then begin
     // make sure to select another page in the NoteBook, otherwise the
     // widgetset will choose one and will send a message
     // if this is the current page, switch to right APageIndex (if possible)
     //todo: determine whether we can use SetPageIndex instead
-    HistoryRemove(FNotebook.Pages[APageIndex]);
     if PageIndex = APageIndex then begin
       if EditorOpts.UseTabHistory then
         FPageIndex := HistoryGetTopPageIndex
@@ -6660,8 +6705,10 @@ begin
   if FHintWindow=nil then
     FHintWindow:=THintWindow.Create(Self);
   AHint:=TheHint;
+  FHintMousePos := Mouse.CursorPos;
   if LazarusHelp.CreateHint(FHintWindow,ScreenPos,BaseURL,AHint,HintWinRect) then
     FHintWindow.ActivateHint(HintWinRect,aHint);
+  FMouseHideHintTimer.Enabled := True;
 end;
 
 procedure TSourceNotebook.HideHint;
@@ -6672,6 +6719,8 @@ begin
     FMouseHintTimer.AutoEnabled := false;
     FMouseHintTimer.Enabled:=false;
   end;
+  if FMouseHideHintTimer <> nil then
+    FMouseHideHintTimer.Enabled := False;
   if SourceCompletionTimer<>nil then
     SourceCompletionTimer.Enabled:=false;
   if FHintWindow<>nil then begin
@@ -6913,35 +6962,40 @@ begin
   {$IFDEF IDE_DEBUG}
   debugln(['TSourceNotebook.CloseFile A  APageIndex=',APageIndex]);
   {$ENDIF}
-  TempEditor:=FindSourceEditorWithPageIndex(APageIndex);
-  if TempEditor=nil then exit;
-  WasSelected:=PageIndex=APageIndex;
-  //debugln(['TSourceNotebook.CloseFile ',TempEditor.FileName,' ',TempEditor.APageIndex]);
-  EndIncrementalFind;
-  TempEditor.Close;
-  NoteBookDeletePage(APageIndex); // delete page before sending notification senEditorDestroyed
-  TempEditor.Free;
-  TempEditor:=nil;
-  // delete the page
-  //debugln('TSourceNotebook.CloseFile B  APageIndex=',APageIndex,' PageCount=',PageCount,' NoteBook.APageIndex=',Notebook.APageIndex);
-  //debugln('TSourceNotebook.CloseFile C  APageIndex=',APageIndex,' PageCount=',PageCount,' NoteBook.APageIndex=',Notebook.APageIndex);
-  UpdateProjectFiles;
-  UpdatePageNames;
-  if WasSelected then
-    UpdateStatusBar;
-  // set focus to new editor
-  if (PageCount = 0) and (Parent=nil) then begin
-    {$IFnDEF SingleSrcWindow}
-    Manager.RemoveWindow(self);
-    FManager := nil;
-    {$ENDIF}
-    if not FIsClosing then
-      Close;
+  DebugBoss.LockCommandProcessing;
+  try
+    TempEditor:=FindSourceEditorWithPageIndex(APageIndex);
+    if TempEditor=nil then exit;
+    WasSelected:=PageIndex=APageIndex;
+    //debugln(['TSourceNotebook.CloseFile ',TempEditor.FileName,' ',TempEditor.APageIndex]);
+    EndIncrementalFind;
+    TempEditor.Close;
+    NoteBookDeletePage(APageIndex); // delete page before sending notification senEditorDestroyed
+    TempEditor.Free;
+    TempEditor:=nil;
+    // delete the page
+    //debugln('TSourceNotebook.CloseFile B  APageIndex=',APageIndex,' PageCount=',PageCount,' NoteBook.APageIndex=',Notebook.APageIndex);
+    //debugln('TSourceNotebook.CloseFile C  APageIndex=',APageIndex,' PageCount=',PageCount,' NoteBook.APageIndex=',Notebook.APageIndex);
+    UpdateProjectFiles;
+    UpdatePageNames;
+    if WasSelected then
+      UpdateStatusBar;
+    // set focus to new editor
+    if (PageCount = 0) and (Parent=nil) then begin
+      {$IFnDEF SingleSrcWindow}
+      Manager.RemoveWindow(self);
+      FManager := nil;
+      {$ENDIF}
+      if not FIsClosing then
+        Close;
+    end;
+    // Move focus from Notebook-tabs to editor
+    TempEditor:=FindSourceEditorWithPageIndex(PageIndex);
+    if IsVisible and (TempEditor <> nil) and (FUpdateLock = 0) then
+      TempEditor.EditorComponent.SetFocus;
+  finally
+    DebugBoss.UnLockCommandProcessing;
   end;
-  // Move focus from Notebook-tabs to editor
-  TempEditor:=FindSourceEditorWithPageIndex(PageIndex);
-  if IsVisible and (TempEditor <> nil) and (FUpdateLock = 0) then
-    TempEditor.EditorComponent.SetFocus;
   {$IFDEF IDE_DEBUG}
   debugln('TSourceNotebook.CloseFile END');
   {$ENDIF}
@@ -7032,11 +7086,6 @@ begin
    if Index <> -1 then
      FHistoryList.Delete(Index);
    FHistoryList.Insert(0, APage);
-end;
-
-procedure TSourceNotebook.HistoryAdd(APage: TTabSheet);
-begin
-  FHistoryList.Add(APage);
 end;
 
 procedure TSourceNotebook.HistoryRemove(APage: TTabSheet);
@@ -7351,7 +7400,7 @@ Begin
         TempEditor.EditorComponent.Name,' ',
         NoteBookPages[FindPageWithEditor(TempEditor)]);
       {$ENDIF}
-      TempEditor.FocusEditor;
+      TempEditor.FocusEditor; // recursively calls NotebookPageChanged, via EditorEnter
       {$IFDEF VerboseFocus}
       debugln('TSourceNotebook.NotebookPageChanged AFTER SetFocus ',
         TempEditor.EditorComponent.Name,' ',
@@ -7649,6 +7698,17 @@ begin
   if (AControl=nil) or (not ContainsControl(AControl)) then exit;
   if AControl is TSynEdit then
     ShowSynEditHint(MousePos);
+end;
+
+procedure TSourceNotebook.HideHintTimer(Sender: TObject);
+begin
+  if (FHintWindow = nil) or (not FHintWindow.Visible) then begin
+    FMouseHideHintTimer.Enabled := false;
+    exit;
+  end;
+
+  if ComparePoints(FHintMousePos, Mouse.CursorPos) <> 0 then
+    HideHint;
 end;
 
 {------------------------------------------------------------------------------

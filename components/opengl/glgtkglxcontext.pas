@@ -174,10 +174,10 @@ type
 
 type
   //PGLXPixmap = ^GLXPixmap;
-  GLXPixmap = TXID;
+  GLXPixmap = {%H-}TXID;
 
   //PGLXDrawable = ^GLXDrawable;
-  GLXDrawable = TXID;
+  GLXDrawable = {%H-}TXID;
 
 {$IFNDEF UseFPGLX}
 { GLX 1.0 functions. }
@@ -445,6 +445,7 @@ begin
   {$IFDEF lclgtk2}
     if visual=nil then ;
     {$IFDEF UseFPGLX}
+      FBConfigs:=nil;
       if GLX_version_1_3(dpy) then begin
         { use approach recommended since glX 1.3 }
         FBConfigsCount:=0;
@@ -479,6 +480,8 @@ begin
                                           PrivateShareList^.glxcontext, true)
       else
         glxcontext := glXCreateNewContext(dpy, FBConfig, GLX_RGBA_TYPE, nil, true);
+      if FBConfigs<>nil then
+        XFree(FBConfigs);
     end else begin
       if (sharelist<>nil) then
         glxcontext := glXCreateContext(dpy, vi, PrivateShareList^.glxcontext,

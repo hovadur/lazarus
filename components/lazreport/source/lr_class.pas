@@ -2841,7 +2841,11 @@ var
       n, nw, w, curx: Integer;
       Ts: TTextStyle;
     begin
-      if not Streaming and (cury + th < DR.Bottom) then
+      {$IFDEF DebugLR}
+      DebugLn('OutLine Cury=%d + th=%d = %d < dr.bottom=%d == %s',[cury,th,cury+th,dr.bottom,dbgs(cury+th<dr.bottom)]);
+      {$ENDIF}
+      // TODO: needs to check that th is calculated precisely
+      if not Streaming {and (cury + th <= DR.Bottom)} then
       begin
         n := Length(St);
         w := Ord(St[n - 1]) * 256 + Ord(St[n]);
@@ -3844,7 +3848,6 @@ end;
 function TfrBandView.GetClipRgn(rt: TfrRgnType): HRGN;
 var
   R,R1,R2: HRGN;
-  RR : LongInt;
 begin
   if not ShowBandTitles then
   begin
@@ -3862,7 +3865,7 @@ begin
 
   R2:=CreateRectRgn(0,0,0,0);
 
-  RR:=CombineRgn(R2, R, R1, RGN_OR);
+  CombineRgn(R2, R, R1, RGN_OR);
   Result:=R2;
 
   
@@ -7326,7 +7329,7 @@ begin
           t.IsPrinting := IsPrinting;
           t.Draw(Canvas);
         end;
-      end;
+      end
     end
     else
     begin
@@ -9870,7 +9873,7 @@ var
   min, max, avg, sum, count, d, v: Double;
   dk: (dkNone, dkSum, dkMin, dkMax, dkAvg, dkCount);
   vv, v2, v1: Variant;
-  BM : Pointer;
+  BM : TBookMark;
   {$IFDEF DebugLR}
   function FNoStr: string;
   begin
