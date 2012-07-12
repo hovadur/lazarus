@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package name="lcl">
+	<widgetset name="qt">
+		<issue name="TBitBtn.Layout">
+			<short>Bitmap button glyph Layout property is not supported</short>
+		</issue>	  	  
+		<issue name="TEdit.HideSelection">
+			<short>HideSelection property is not supported</short>
+		</issue>
+		<issue name="TListView.HideSelection">
+			<short>HideSelection property is not supported</short>
+		</issue>		
+		<issue name="TMemo.HideSelection">
+			<short>HideSelection property is not supported</short>
+		</issue>
+		<issue name="TPageControl.MultiLine">
+			<short>MultiLine property is not supported</short>
+		</issue>
+		<issue name="TTabControl.MultiLine">
+			<short>MultiLine property is not supported</short>
+		</issue>
+		<issue name="TListBox.Columns">
+			<short>Multiple columns is not supported</short>
+		</issue>
+		<issue name="TCheckListBox.Columns">
+			<short>Multiple columns is not supported</short>
+		</issue>
+		<issue name="TForm.AutoScroll">
+			<short>Not supported yet.Support is planned for lazarus 1.2</short>
+		</issue>
+	</widgetset>
+</package>

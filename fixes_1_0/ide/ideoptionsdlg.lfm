@@ -1,0 +1,100 @@
+inherited IDEOptionsDialog: TIDEOptionsDialog
+  Left = 318
+  Height = 500
+  Top = 182
+  Width = 700
+  ActiveControl = FilterEdit
+  BorderIcons = [biSystemMenu]
+  Caption = 'IDEOptionsDialog'
+  ClientHeight = 500
+  ClientWidth = 700
+  Constraints.MinHeight = 500
+  Constraints.MinWidth = 700
+  OnShow = FormShow
+  Position = poScreenCenter
+  object ButtonPanel: TButtonPanel[0]
+    AnchorSideLeft.Control = Owner
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = Owner
+    Left = 6
+    Height = 34
+    Top = 460
+    Width = 688
+    BorderSpacing.Left = 6
+    BorderSpacing.Right = 6
+    BorderSpacing.Bottom = 6
+    BorderSpacing.Around = 0
+    OKButton.Name = 'OKButton'
+    OKButton.DefaultCaption = True
+    HelpButton.Name = 'HelpButton'
+    HelpButton.DefaultCaption = True
+    CloseButton.Name = 'CloseButton'
+    CloseButton.DefaultCaption = True
+    CloseButton.Enabled = False
+    CancelButton.Name = 'CancelButton'
+    CancelButton.DefaultCaption = True
+    TabOrder = 0
+    ShowButtons = [pbOK, pbCancel, pbHelp]
+  end
+  object CatTVSplitter: TSplitter[1]
+    Left = 234
+    Height = 460
+    Top = 0
+    Width = 5
+  end
+  object Panel1: TPanel[2]
+    Left = 0
+    Height = 460
+    Top = 0
+    Width = 234
+    Align = alLeft
+    BevelOuter = bvNone
+    ClientHeight = 460
+    ClientWidth = 234
+    Constraints.MinWidth = 150
+    TabOrder = 2
+    object CategoryTree: TTreeView
+      AnchorSideLeft.Control = FilterEdit
+      AnchorSideTop.Control = FilterEdit
+      AnchorSideTop.Side = asrBottom
+      AnchorSideRight.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      AnchorSideBottom.Control = Panel1
+      AnchorSideBottom.Side = asrBottom
+      Left = 6
+      Height = 417
+      Top = 37
+      Width = 222
+      Anchors = [akTop, akLeft, akRight, akBottom]
+      BorderSpacing.Top = 6
+      BorderSpacing.Right = 6
+      BorderSpacing.Bottom = 6
+      ReadOnly = True
+      TabOrder = 0
+      OnChange = CategoryTreeChange
+      OnCollapsed = CategoryTreeCollapsed
+      OnExpanded = CategoryTreeExpanded
+      OnKeyDown = CategoryTreeKeyDown
+      Options = [tvoAutoItemHeight, tvoHideSelection, tvoKeepCollapsedNodes, tvoReadOnly, tvoShowButtons, tvoShowLines, tvoShowRoot, tvoToolTips, tvoThemedDraw]
+    end
+    object FilterEdit: TTreeFilterEdit
+      AnchorSideLeft.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      Left = 6
+      Height = 23
+      Top = 8
+      Width = 179
+      OnFilterItem = FilterEditFilterItem
+      ButtonWidth = 23
+      NumGlyphs = 0
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Left = 6
+      Font.Color = clBtnShadow
+      MaxLength = 0
+      ParentFont = False
+      TabOrder = 1
+      FilteredTreeview = CategoryTree
+    end
+  end
+end

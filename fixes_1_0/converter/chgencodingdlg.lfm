@@ -1,0 +1,249 @@
+object ChgEncodingDialog: TChgEncodingDialog
+  Left = 290
+  Height = 560
+  Top = 191
+  Width = 683
+  ActiveControl = OwnerComboBox
+  Caption = 'ChgEncodingDialog'
+  ClientHeight = 560
+  ClientWidth = 683
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Position = poScreenCenter
+  LCLVersion = '0.9.31'
+  object FilesGroupBox: TGroupBox
+    Left = 6
+    Height = 163
+    Top = 72
+    Width = 671
+    Align = alTop
+    AutoSize = True
+    BorderSpacing.Around = 6
+    Caption = 'FilesGroupBox'
+    ClientHeight = 142
+    ClientWidth = 663
+    TabOrder = 0
+    object FileFilterLabel: TLabel
+      AnchorSideLeft.Control = FilesGroupBox
+      AnchorSideTop.Control = NonUTF8FilesCheckBox
+      AnchorSideTop.Side = asrBottom
+      Left = 6
+      Height = 18
+      Top = 71
+      Width = 99
+      BorderSpacing.Left = 6
+      BorderSpacing.Top = 15
+      BorderSpacing.Bottom = 2
+      Caption = 'FileFilterLabel'
+      ParentColor = False
+    end
+    object UTF8FilesCheckBox: TCheckBox
+      AnchorSideLeft.Control = FilesGroupBox
+      AnchorSideTop.Control = FilesGroupBox
+      Left = 6
+      Height = 22
+      Top = 6
+      Width = 160
+      BorderSpacing.Around = 6
+      Caption = 'UTF8FilesCheckBox'
+      Checked = True
+      OnChange = PreviewClick
+      State = cbChecked
+      TabOrder = 0
+    end
+    object NonUTF8FilesCheckBox: TCheckBox
+      AnchorSideLeft.Control = FilesGroupBox
+      AnchorSideTop.Control = UTF8FilesCheckBox
+      AnchorSideTop.Side = asrBottom
+      Left = 6
+      Height = 22
+      Top = 34
+      Width = 188
+      BorderSpacing.Around = 6
+      Caption = 'NonUTF8FilesCheckBox'
+      Checked = True
+      OnChange = PreviewClick
+      State = cbChecked
+      TabOrder = 1
+    end
+    object RegExprCheckBox: TCheckBox
+      AnchorSideLeft.Control = FilesGroupBox
+      AnchorSideTop.Control = FileFilterCombobox
+      AnchorSideTop.Side = asrBottom
+      Left = 6
+      Height = 22
+      Top = 120
+      Width = 151
+      BorderSpacing.Left = 6
+      BorderSpacing.Top = 2
+      Caption = 'RegExprCheckBox'
+      OnChange = PreviewClick
+      TabOrder = 2
+    end
+    object FileFilterCombobox: TComboBox
+      AnchorSideLeft.Control = FilesGroupBox
+      AnchorSideTop.Control = FileFilterLabel
+      AnchorSideTop.Side = asrBottom
+      AnchorSideRight.Control = FilesGroupBox
+      AnchorSideRight.Side = asrBottom
+      Left = 6
+      Height = 27
+      Top = 91
+      Width = 651
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Left = 6
+      BorderSpacing.Right = 6
+      ItemHeight = 0
+      OnChange = PreviewClick
+      TabOrder = 3
+      Text = 'FileFilterCombobox'
+    end
+  end
+  object BtnPanel: TPanel
+    Left = 0
+    Height = 46
+    Top = 514
+    Width = 683
+    Align = alBottom
+    AutoSize = True
+    BevelOuter = bvNone
+    ClientHeight = 46
+    ClientWidth = 683
+    TabOrder = 1
+    object CloseButton: TBitBtn
+      Left = 575
+      Height = 34
+      Top = 6
+      Width = 102
+      Align = alRight
+      AutoSize = True
+      BorderSpacing.Around = 6
+      Caption = 'CloseButton'
+      Constraints.MinWidth = 75
+      ModalResult = 1
+      NumGlyphs = 0
+      TabOrder = 0
+    end
+    object ApplyButton: TBitBtn
+      Left = 465
+      Height = 34
+      Top = 6
+      Width = 104
+      Align = alRight
+      AutoSize = True
+      BorderSpacing.Around = 6
+      Caption = 'ApplyButton'
+      Constraints.MinWidth = 75
+      NumGlyphs = 0
+      OnClick = ApplyButtonClick
+      TabOrder = 1
+    end
+    object HelpButton: TBitBtn
+      Left = 6
+      Height = 34
+      Top = 6
+      Width = 85
+      Align = alLeft
+      AutoSize = True
+      BorderSpacing.Around = 6
+      Caption = '&Help'
+      Kind = bkHelp
+      NumGlyphs = 0
+      OnClick = HelpButtonClick
+      TabOrder = 2
+    end
+  end
+  object ScopeGroupBox: TGroupBox
+    Left = 6
+    Height = 60
+    Top = 6
+    Width = 671
+    Align = alTop
+    AutoSize = True
+    BorderSpacing.Around = 6
+    Caption = 'ScopeGroupBox'
+    ClientHeight = 39
+    ClientWidth = 663
+    TabOrder = 2
+    object NewEncodingLabel: TLabel
+      AnchorSideLeft.Control = NewEncodingComboBox
+      AnchorSideTop.Control = NewEncodingComboBox
+      AnchorSideTop.Side = asrCenter
+      AnchorSideRight.Control = NewEncodingComboBox
+      Left = 400
+      Height = 18
+      Top = 10
+      Width = 130
+      Anchors = [akTop, akRight]
+      BorderSpacing.Left = 15
+      Caption = 'NewEncodingLabel'
+      ParentColor = False
+    end
+    object OwnerComboBox: TComboBox
+      AnchorSideLeft.Control = ScopeGroupBox
+      AnchorSideTop.Control = ScopeGroupBox
+      AnchorSideRight.Control = NewEncodingLabel
+      Left = 6
+      Height = 27
+      Top = 6
+      Width = 379
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Around = 6
+      ItemHeight = 0
+      OnChange = PreviewClick
+      TabOrder = 0
+      Text = 'OwnerComboBox'
+    end
+    object NewEncodingComboBox: TComboBox
+      AnchorSideTop.Control = ScopeGroupBox
+      AnchorSideRight.Control = ScopeGroupBox
+      AnchorSideRight.Side = asrBottom
+      Left = 530
+      Height = 27
+      Top = 6
+      Width = 127
+      Anchors = [akTop, akRight]
+      BorderSpacing.Top = 6
+      BorderSpacing.Right = 6
+      BorderSpacing.Bottom = 6
+      ItemHeight = 0
+      OnChange = PreviewClick
+      TabOrder = 1
+      Text = 'NewEncodingComboBox'
+    end
+  end
+  object PreviewGroupBox: TGroupBox
+    Left = 6
+    Height = 267
+    Top = 241
+    Width = 671
+    Align = alClient
+    BorderSpacing.Around = 6
+    Caption = 'PreviewGroupBox'
+    ClientHeight = 246
+    ClientWidth = 663
+    TabOrder = 3
+    object PreviewListView: TListView
+      Left = 0
+      Height = 246
+      Top = 0
+      Width = 663
+      Align = alClient
+      Columns = <      
+        item
+          AutoSize = True
+          Caption = 'Files'
+          MinWidth = 75
+          Width = 100
+        end      
+        item
+          AutoSize = True
+          Caption = 'Encoding'
+          MinWidth = 75
+          Width = 100
+        end>
+      TabOrder = 0
+      ViewStyle = vsReport
+    end
+  end
+end

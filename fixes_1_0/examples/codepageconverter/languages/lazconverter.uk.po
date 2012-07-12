@@ -1,0 +1,52 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Project-Id-Version: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: Igor Paliychuk <mansonigor@gmail.com>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: TLAZCONVERTERFORM.BUTTON1.CAPTION
+msgid "Path"
+msgstr "Шлях"
+
+#: TLAZCONVERTERFORM.BUTTON2.CAPTION
+msgid "Search"
+msgstr "Пошук"
+
+#: TLAZCONVERTERFORM.BUTTON3.CAPTION
+msgid "Convert"
+msgstr "Конвертувати"
+
+#: TLAZCONVERTERFORM.CAPTION
+msgctxt "TLAZCONVERTERFORM.CAPTION"
+msgid "Codepage LazConverter for PAS, LFM, LRS, LRT & INC files v0.0.6"
+msgstr "Codepage LazConverter для PAS, LFM, LRS, LRT & INC файлів v0.0.6"
+
+#: TLAZCONVERTERFORM.LABEL1.CAPTION
+msgid "Path to your project:"
+msgstr "Шлях до вашого проекту:"
+
+#: TLAZCONVERTERFORM.LABEL2.CAPTION
+msgid "Convert From:"
+msgstr "Конвертувати З:"
+
+#: TLAZCONVERTERFORM.LABEL3.CAPTION
+msgid "Convert To:"
+msgstr "Конвертувати В:"
+
+#: TLAZCONVERTERFORM.LABEL6.CAPTION
+msgid "Ready..."
+msgstr "Готовий..."
+
+#: TLAZCONVERTERFORM.MENUITEM1.CAPTION
+msgid "Remove from conversion"
+msgstr "Видалити з конвертування"
+
+#: TLAZCONVERTERFORM.SELECTDIRECTORYDIALOG1.TITLE
+msgid "Select Directory"
+msgstr "Виберіть Теку"
+

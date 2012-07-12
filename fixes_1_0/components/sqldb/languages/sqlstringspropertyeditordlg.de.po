@@ -1,0 +1,43 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Project-Id-Version: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: Swen Heinig <swen.heinig@freenet.de>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: sqlstringspropertyeditordlg.smetacolumns
+msgid "Columns"
+msgstr "Spalten"
+
+#: sqlstringspropertyeditordlg.smetapleasespecifyatableintheobjectfield
+msgid "Please specify a table in the object field."
+msgstr "Bitte bestimmen Sie eine Tabelle im Objektfeld."
+
+#: sqlstringspropertyeditordlg.smetaprocedures
+msgid "Procedures"
+msgstr "Prozeduren"
+
+#: sqlstringspropertyeditordlg.smetasystables
+msgid "SysTables"
+msgstr "Systemtabellen"
+
+#: sqlstringspropertyeditordlg.smetatabcaption
+msgid "Metadata"
+msgstr "Metadaten"
+
+#: sqlstringspropertyeditordlg.smetatables
+msgid "Tables"
+msgstr "Tabellen"
+
+#: sqlstringspropertyeditordlg.sresulttabcaption
+msgid "Results"
+msgstr "Ergebnisse"
+
+#: sqlstringspropertyeditordlg.ssqltabcaption
+msgid "SQL Code"
+msgstr "SQL-Code"
+

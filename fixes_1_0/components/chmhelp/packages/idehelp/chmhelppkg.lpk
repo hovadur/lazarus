@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <Package Version="4">
+    <Name Value="ChmHelpPkg"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <SearchPaths>
+        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)/$(LCLWidgetType)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <UseAnsiStrings Value="False"/>
+        </SyntaxOptions>
+      </Parsing>
+      <Other>
+        <CompilerMessages>
+          <UseMsgFile Value="True"/>
+        </CompilerMessages>
+        <CompilerPath Value="$(CompPath)"/>
+      </Other>
+    </CompilerOptions>
+    <Version Minor="1"/>
+    <Files Count="4">
+      <Item1>
+        <Filename Value="lazchmhelp.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="LazChmHelp"/>
+      </Item1>
+      <Item2>
+        <Filename Value="chmlangref.pas"/>
+        <UnitName Value="ChmLangRef"/>
+      </Item2>
+      <Item3>
+        <Filename Value="chmlcl.pas"/>
+        <UnitName Value="ChmLcl"/>
+      </Item3>
+      <Item4>
+        <Filename Value="chmprog.pas"/>
+        <UnitName Value="ChmProg"/>
+      </Item4>
+    </Files>
+    <Type Value="DesignTime"/>
+    <RequiredPkgs Count="4">
+      <Item1>
+        <PackageName Value="LCL"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="lhelpcontrolpkg"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="IDEIntf"/>
+      </Item3>
+      <Item4>
+        <PackageName Value="FCL"/>
+        <MinVersion Major="1" Valid="True"/>
+      </Item4>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

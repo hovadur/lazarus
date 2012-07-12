@@ -1,0 +1,423 @@
+object CompilerCodegenOptionsFrame: TCompilerCodegenOptionsFrame
+  Left = 0
+  Height = 523
+  Top = 0
+  Width = 601
+  ClientHeight = 523
+  ClientWidth = 601
+  TabOrder = 0
+  DesignLeft = 290
+  DesignTop = 90
+  object grpUnitStyle: TGroupBox
+    AnchorSideLeft.Control = Owner
+    AnchorSideTop.Control = grpChecks
+    AnchorSideTop.Side = asrBottom
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = grpHeapStackSize
+    AnchorSideBottom.Side = asrBottom
+    Left = 0
+    Height = 78
+    Top = 163
+    Width = 137
+    Anchors = [akTop, akLeft, akBottom]
+    AutoSize = True
+    BorderSpacing.Top = 6
+    Caption = 'grpUnitStyle'
+    ClientHeight = 62
+    ClientWidth = 133
+    TabOrder = 2
+    object chkSmartLinkUnit: TCheckBox
+      Left = 6
+      Height = 21
+      Top = 6
+      Width = 121
+      Align = alTop
+      BorderSpacing.Around = 6
+      Caption = 'chkSmartLinkUnit'
+      TabOrder = 0
+    end
+    object chkRelocatableUnit: TCheckBox
+      Left = 6
+      Height = 21
+      Top = 33
+      Width = 121
+      Align = alTop
+      BorderSpacing.Around = 6
+      Caption = 'chkRelocatableUnit'
+      TabOrder = 1
+    end
+  end
+  object grpChecks: TGroupBox
+    AnchorSideLeft.Control = Owner
+    AnchorSideTop.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    Left = 0
+    Height = 157
+    Top = 0
+    Width = 160
+    AutoSize = True
+    Caption = 'grpChecks'
+    ChildSizing.TopBottomSpacing = 6
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 1
+    ClientHeight = 141
+    ClientWidth = 156
+    TabOrder = 0
+    object chkChecksIO: TCheckBox
+      Left = 6
+      Height = 21
+      Top = 6
+      Width = 144
+      BorderSpacing.Around = 6
+      Caption = 'chkChecksIO'
+      TabOrder = 0
+    end
+    object chkChecksRange: TCheckBox
+      Left = 6
+      Height = 21
+      Top = 33
+      Width = 144
+      BorderSpacing.Around = 6
+      Caption = 'chkChecksRange'
+      TabOrder = 1
+    end
+    object chkChecksOverflow: TCheckBox
+      Left = 6
+      Height = 21
+      Top = 60
+      Width = 144
+      BorderSpacing.Around = 6
+      Caption = 'chkChecksOverflow'
+      TabOrder = 2
+    end
+    object chkChecksStack: TCheckBox
+      Left = 6
+      Height = 21
+      Top = 87
+      Width = 144
+      BorderSpacing.Around = 6
+      Caption = 'chkChecksStack'
+      TabOrder = 3
+    end
+    object chkVerifyObjMethodCall: TCheckBox
+      Left = 6
+      Height = 21
+      Top = 114
+      Width = 144
+      Caption = 'chkVerifyObjMethodCall'
+      TabOrder = 4
+    end
+  end
+  object grpHeapStackSize: TGroupBox
+    AnchorSideLeft.Control = grpUnitStyle
+    AnchorSideLeft.Side = asrBottom
+    AnchorSideTop.Control = grpTargetPlatform
+    AnchorSideTop.Side = asrBottom
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Side = asrBottom
+    Left = 143
+    Height = 78
+    Top = 163
+    Width = 458
+    Anchors = [akTop, akLeft, akRight]
+    AutoSize = True
+    BorderSpacing.Left = 6
+    BorderSpacing.Top = 6
+    Caption = 'grpHeapStackSize'
+    ChildSizing.TopBottomSpacing = 6
+    ClientHeight = 62
+    ClientWidth = 454
+    TabOrder = 3
+    object edtHeapSize: TEdit
+      AnchorSideLeft.Control = lbHeapSize
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = grpHeapStackSize
+      AnchorSideRight.Control = grpHeapStackSize
+      AnchorSideRight.Side = asrBottom
+      Left = 74
+      Height = 22
+      Top = 6
+      Width = 374
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Left = 6
+      BorderSpacing.Around = 6
+      TabOrder = 0
+      Text = 'edtHeapSize'
+    end
+    object lbHeapSize: TLabel
+      AnchorSideLeft.Control = grpHeapStackSize
+      AnchorSideTop.Control = edtHeapSize
+      AnchorSideTop.Side = asrCenter
+      Left = 6
+      Height = 15
+      Top = 10
+      Width = 56
+      BorderSpacing.Around = 6
+      Caption = 'lbHeapSize'
+      ParentColor = False
+    end
+    object edtStackSize: TEdit
+      AnchorSideLeft.Control = lbStackSize
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = edtHeapSize
+      AnchorSideTop.Side = asrBottom
+      AnchorSideRight.Control = grpHeapStackSize
+      AnchorSideRight.Side = asrBottom
+      Left = 76
+      Height = 22
+      Top = 34
+      Width = 372
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Left = 6
+      BorderSpacing.Around = 6
+      TabOrder = 1
+      Text = 'edtStackSize'
+    end
+    object lbStackSize: TLabel
+      AnchorSideLeft.Control = grpHeapStackSize
+      AnchorSideTop.Control = edtStackSize
+      AnchorSideTop.Side = asrCenter
+      Left = 6
+      Height = 15
+      Top = 38
+      Width = 58
+      BorderSpacing.Around = 6
+      Caption = 'lbStackSize'
+      ParentColor = False
+    end
+  end
+  object grpTargetPlatform: TGroupBox
+    AnchorSideLeft.Control = grpChecks
+    AnchorSideLeft.Side = asrBottom
+    AnchorSideTop.Control = Owner
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = grpChecks
+    AnchorSideBottom.Side = asrBottom
+    Left = 166
+    Height = 157
+    Top = 0
+    Width = 435
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    AutoSize = True
+    BorderSpacing.Left = 6
+    Caption = 'grpTargetPlatform'
+    ClientHeight = 141
+    ClientWidth = 431
+    TabOrder = 1
+    object lblTargetOS: TLabel
+      AnchorSideLeft.Control = grpTargetPlatform
+      AnchorSideTop.Control = TargetOSComboBox
+      AnchorSideTop.Side = asrCenter
+      Left = 6
+      Height = 15
+      Top = 12
+      Width = 60
+      BorderSpacing.Around = 6
+      Caption = 'lblTargetOS'
+      ParentColor = False
+    end
+    object lblTargetCPU: TLabel
+      AnchorSideLeft.Control = grpTargetPlatform
+      AnchorSideTop.Control = TargetCPUComboBox
+      AnchorSideTop.Side = asrCenter
+      Left = 6
+      Height = 15
+      Top = 44
+      Width = 67
+      BorderSpacing.Around = 6
+      Caption = 'lblTargetCPU'
+      ParentColor = False
+    end
+    object lblTargetProcessorProc: TLabel
+      AnchorSideLeft.Control = grpTargetPlatform
+      AnchorSideTop.Control = TargetProcessorProcComboBox
+      AnchorSideTop.Side = asrCenter
+      Left = 6
+      Height = 15
+      Top = 76
+      Width = 115
+      BorderSpacing.Around = 6
+      Caption = 'lblTargetProcessorProc'
+      ParentColor = False
+    end
+    object TargetOSComboBox: TComboBox
+      AnchorSideLeft.Control = lblTargetOS
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = grpTargetPlatform
+      AnchorSideRight.Control = grpTargetPlatform
+      AnchorSideRight.Side = asrBottom
+      Left = 78
+      Height = 26
+      Top = 6
+      Width = 347
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Left = 6
+      BorderSpacing.Around = 6
+      ItemHeight = 0
+      Style = csDropDownList
+      TabOrder = 0
+    end
+    object TargetCPUComboBox: TComboBox
+      AnchorSideLeft.Control = lblTargetCPU
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = TargetOSComboBox
+      AnchorSideTop.Side = asrBottom
+      AnchorSideRight.Control = grpTargetPlatform
+      AnchorSideRight.Side = asrBottom
+      Left = 85
+      Height = 26
+      Top = 38
+      Width = 340
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Left = 6
+      BorderSpacing.Around = 6
+      ItemHeight = 0
+      Style = csDropDownList
+      TabOrder = 1
+    end
+    object TargetProcessorProcComboBox: TComboBox
+      AnchorSideLeft.Control = lblTargetProcessorProc
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = TargetCPUComboBox
+      AnchorSideTop.Side = asrBottom
+      AnchorSideRight.Control = grpTargetPlatform
+      AnchorSideRight.Side = asrBottom
+      Left = 133
+      Height = 26
+      Top = 70
+      Width = 292
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Left = 6
+      BorderSpacing.Around = 6
+      ItemHeight = 0
+      Style = csDropDownList
+      TabOrder = 2
+    end
+  end
+  object grpOptimizations: TGroupBox
+    AnchorSideLeft.Control = Owner
+    AnchorSideTop.Control = grpHeapStackSize
+    AnchorSideTop.Side = asrBottom
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = Owner
+    AnchorSideBottom.Side = asrBottom
+    Left = 0
+    Height = 276
+    Top = 247
+    Width = 601
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    BorderSpacing.Top = 6
+    Caption = 'grpOptimizations'
+    ClientHeight = 260
+    ClientWidth = 597
+    TabOrder = 4
+    object radOptLevelNone: TRadioButton
+      AnchorSideLeft.Control = grpOptimizations
+      AnchorSideTop.Control = grpOptimizations
+      Left = 6
+      Height = 21
+      Top = 6
+      Width = 111
+      BorderSpacing.Around = 6
+      Caption = 'radOptLevelNone'
+      Checked = True
+      TabOrder = 0
+      TabStop = True
+    end
+    object radOptLevel1: TRadioButton
+      AnchorSideLeft.Control = grpOptimizations
+      AnchorSideTop.Control = radOptLevelNone
+      AnchorSideTop.Side = asrBottom
+      Left = 6
+      Height = 21
+      Top = 33
+      Width = 91
+      BorderSpacing.Around = 6
+      Caption = 'radOptLevel1'
+      TabOrder = 1
+    end
+    object radOptLevel2: TRadioButton
+      AnchorSideLeft.Control = grpOptimizations
+      AnchorSideTop.Control = radOptLevel1
+      AnchorSideTop.Side = asrBottom
+      Left = 6
+      Height = 21
+      Top = 60
+      Width = 91
+      BorderSpacing.Around = 6
+      Caption = 'radOptLevel2'
+      TabOrder = 2
+    end
+    object radOptLevel3: TRadioButton
+      AnchorSideLeft.Control = grpOptimizations
+      AnchorSideTop.Control = radOptLevel2
+      AnchorSideTop.Side = asrBottom
+      Left = 6
+      Height = 21
+      Top = 87
+      Width = 91
+      BorderSpacing.Around = 6
+      Caption = 'radOptLevel3'
+      TabOrder = 3
+    end
+    object chkOptVarsInReg: TCheckBox
+      AnchorSideLeft.Control = grpOptimizations
+      AnchorSideTop.Control = Bevel1
+      AnchorSideTop.Side = asrBottom
+      Left = 6
+      Height = 21
+      Top = 123
+      Width = 110
+      BorderSpacing.Left = 6
+      BorderSpacing.Top = 6
+      BorderSpacing.Bottom = 6
+      Caption = 'chkOptVarsInReg'
+      TabOrder = 4
+    end
+    object chkOptUncertain: TCheckBox
+      AnchorSideLeft.Control = grpOptimizations
+      AnchorSideTop.Control = chkOptVarsInReg
+      AnchorSideTop.Side = asrBottom
+      Left = 6
+      Height = 21
+      Top = 150
+      Width = 109
+      BorderSpacing.Left = 6
+      BorderSpacing.Top = 6
+      BorderSpacing.Bottom = 6
+      Caption = 'chkOptUncertain'
+      TabOrder = 5
+    end
+    object chkOptSmaller: TCheckBox
+      AnchorSideLeft.Control = grpOptimizations
+      AnchorSideTop.Control = chkOptUncertain
+      AnchorSideTop.Side = asrBottom
+      AnchorSideBottom.Side = asrBottom
+      Left = 6
+      Height = 21
+      Top = 177
+      Width = 97
+      BorderSpacing.Left = 6
+      BorderSpacing.Top = 6
+      BorderSpacing.Bottom = 6
+      Caption = 'chkOptSmaller'
+      TabOrder = 6
+    end
+    object Bevel1: TBevel
+      AnchorSideLeft.Control = grpOptimizations
+      AnchorSideTop.Control = radOptLevel3
+      AnchorSideTop.Side = asrBottom
+      AnchorSideRight.Control = grpOptimizations
+      AnchorSideRight.Side = asrBottom
+      Left = 6
+      Height = 3
+      Top = 114
+      Width = 585
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Around = 6
+    end
+  end
+end
