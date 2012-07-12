@@ -1,3 +1,0 @@
-Button color: clBtnFace
-Checkbox color: clLime
-RadioButton color: clLime
