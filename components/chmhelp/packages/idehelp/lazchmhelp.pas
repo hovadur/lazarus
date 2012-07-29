@@ -15,41 +15,6 @@
   to the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
   MA 02111-1307, USA.
 }
-
-{
-ToDos:
-
-- predefined procs:
-   Anton: I've prepared some changes to ChmHelpPkg. Now help must be shown for
-   such procs/funcs as Exit, Break, Inc, Dec, Continue etc. (full list can be
-   found in fpc/rtl/inc/system.fpd)
-
-- predefined identifiers:
-  ref.chm contains help for FPC predefined identifiers - base types
-  (e.g. Byte, Boolean etc.) and constants (True, False, ..)
-
-- compiler directives:
-
-- fpc messages:
-
-- fpc compiler options:
-
-- IDE dialogs / wiki:
-  download content, without wiki links like upload, history, ...
-
-- how to build lcl.chm?
-  how to refer to fcl.chm?
-  how to refer to rtl.chm?
-
-- how to build ideintf.chm?
-  how to refer to lcl.chm?
-  how to refer to fcl.chm?
-  how to refer to rtl.chm?
-
-- how to build rtl.chm?
-
-}
-
 unit LazChmHelp;
 
 {$mode objfpc}{$H+}
@@ -205,13 +170,19 @@ begin
     Exit(mrOK);
 
   if not GetLazBuildEXE(Lazbuild) then
+  begin
+    debugln(['TChmHelpViewer.CheckBuildLHelp failed because lazbuild not found']);
     Exit;
+  end;
 
   LHelpProject := '$(LazarusDir)/components/chmhelp/lhelp/lhelp.lpi';
   if not IDEMacros.SubstituteMacros(LHelpProject) then exit;
   LHelpProject:=TrimFilename(SetDirSeparators(LHelpProject));
   if not FileExistsUTF8(LHelpProject) then
+  begin
+    debugln(['TChmHelpViewer.CheckBuildLHelp failed because lhelp.lpi not found']);
     Exit;
+  end;
 
   WS := '--ws='+LCLPlatformDirNames[WidgetSet.LCLPlatform];
 
@@ -228,6 +199,7 @@ begin
   Proc.Parameters.Add(LHelpProject);
   {$endif}
   Proc.Options := [poUsePipes, poStderrToOutPut];
+  debugln(['TChmHelpViewer.CheckBuildLHelp running "',Lazbuild,' ',WS,' ',LHelpProject,'" ...']);
   Proc.Execute;
 
 
@@ -371,6 +343,7 @@ var
   SearchPath: String;
   Proc: TProcessUTF8;
   FoundFileName: String;
+  LHelpPath: String;
 begin
   if Pos('file://', Node.URL) = 1 then
   begin
@@ -403,7 +376,7 @@ begin
     Exit;
   end;
 
-  FileName := FoundFileName;
+  FileName := CleanAndExpandFilename(FoundFileName);
 
   if ExtractFileNameOnly(GetHelpExe) = 'lhelp' then begin
     fHelpConnection.StartHelpServer(HelpLabel, GetHelpExe);
@@ -427,9 +400,25 @@ begin
       {$if (fpc_version=2) and (fpc_release<5)}
       Proc.CommandLine := GetHelpExe + ' ' + Format(fHelpExeParams, [FileName, Url]);
       {$else}
-      Proc.Executable := GetHelpExe;
+      LHelpPath:=GetHelpEXE;
+      Proc.Executable := LHelpPath;
+      {$IFDEF darwin}
+      debugln(['TChmHelpViewer.ShowNode LHelpPath=',LHelpPath]);
+      if DirectoryExistsUTF8(LHelpPath+'.app') then
+        LHelpPath+='.app';
+      if DirectoryExistsUTF8(LHelpPath) then begin
+        // application bundle
+        // to put lhelp into the foreground, use "open -n lhelp.app --args args"
+        Proc.Executable := '/usr/bin/open';
+        Proc.Parameters.Add('-n');
+        Proc.Parameters.Add(LHelpPath);
+        Proc.Parameters.Add('--args');
+        Proc.Parameters.Add(Format(fHelpExeParams, [FileName, Url]));
+      end;
+      {$ENDIF}
       Proc.Parameters.Add(Format(fHelpExeParams, [FileName, Url]));
       {$endif}
+      debugln(['TChmHelpViewer.ShowNode Executable=',Proc.Executable,' Params="',dbgstr(Proc.Parameters.Text),'"']);
       Proc.Execute;
       Res := srSuccess;
     except
